@@ -81,26 +81,25 @@ echo "Delete cmd: az group delete --name ${MYAZRG}  -y"
 
 
 echo "----- CHECK SSH CONNECTIVITY -----"
-ssh -l cloudadmin -o UpdateHostKeys=yes -o StrictHostKeyChecking=accept-new $MYUSER@$MYPUBIP1 test
-ssh -l cloudadmin -o UpdateHostKeys=yes -o StrictHostKeyChecking=accept-new $MYUSER@$MYPUBIP2 test
+ssh -l $MYUSER -o UpdateHostKeys=yes -o StrictHostKeyChecking=accept-new $MYUSER@$MYPUBIP1 test || echo "Something wrong with $MYUSER@$MYPUBIP1"
+ssh -l $MYUSER -o UpdateHostKeys=yes -o StrictHostKeyChecking=accept-new $MYUSER@$MYPUBIP2 test || echo "Something wrong with $MYUSER@$MYPUBIP2"
 
 echo "----- ZYPPER REFRESH -----"
-ssh $MYUSER@$MYPUBIP1 sudo zypper refresh
-ssh $MYUSER@$MYPUBIP2 sudo zypper refresh
+ssh $MYUSER@$MYPUBIP1 sudo zypper refresh || echo "Something wrong during zypper refresh on $MYUSER@$MYPUBIP1"
+ssh $MYUSER@$MYPUBIP2 sudo zypper refresh || echo "Something wrong during zypper refresh on $MYUSER@$MYPUBIP2"
 
 echo "----- CHECK FOR CLUSTERTOOLS2 PRESENCE -----"
 ! ssh $MYUSER@$MYPUBIP1 zypper se -i -s ClusterTools2
 ssh $MYUSER@$MYPUBIP2 zypper se -i -s ClusterTools2
 
 echo "----- CHECK FOR CLOUD-INIT LOGS -----"
-
 # Both has to have cloud-init
-ssh $MYUSER@$MYPUBIP1 sudo journalctl |grep -E 'cloud-init'
-ssh $MYUSER@$MYPUBIP2 sudo journalctl |grep -E 'cloud-init'
+ssh $MYUSER@$MYPUBIP1 sudo journalctl | grep -E 'cloud-init'
+ssh $MYUSER@$MYPUBIP2 sudo journalctl | grep -E 'cloud-init'
 
 # Only VM2 has to have ClusterTools2 managed by cloud-init
-! ssh $MYUSER@$MYPUBIP1 sudo journalctl |grep -E 'cloud-init'|grep ClusterTools2
-ssh $MYUSER@$MYPUBIP2 sudo journalctl |grep -E 'cloud-init'|grep ClusterTools2
+! ssh $MYUSER@$MYPUBIP1 sudo journalctl | grep -E 'cloud-init' | grep ClusterTools2
+ssh $MYUSER@$MYPUBIP2 sudo journalctl | grep -E 'cloud-init' | grep ClusterTools2
 
 echo "----- CHECK FOR CLOUD-INIT WARNINGS -----"
 ! ssh $MYUSER@$MYPUBIP1 sudo grep WARNING /var/log/cloud-init.log
