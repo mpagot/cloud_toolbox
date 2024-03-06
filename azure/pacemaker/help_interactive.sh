@@ -17,17 +17,10 @@ echo "MYAZVM=${MYAZVM}"
 echo "MYAZVMUSR=${MYAZVMUSR}"
 
 echo "----- GET USERNAME AND IP -----"
-export MYUSER=$(az vm list --resource-group ${MYAZRG} --query '[0].osProfile.adminUsername' -o tsv)
-export MYPUBIP1=$(az network public-ip show --ids $(az network nic show --ids $(az vm show \
-    --resource-group ${MYAZRG} \
-    --name "${MYAZVM}-1" \
-    --query "networkProfile.networkInterfaces[0].id" -o tsv) \
-    --query "ipConfigurations[0].publicIPAddress.id" -o tsv) --query "ipAddress" -o tsv)
-export MYPUBIP2=$(az network public-ip show --ids $(az network nic show --ids $(az vm show \
-    --resource-group ${MYAZRG} \
-    --name "${MYAZVM}-2" \
-    --query "networkProfile.networkInterfaces[0].id" -o tsv) \
-    --query "ipConfigurations[0].publicIPAddress.id" -o tsv) --query "ipAddress" -o tsv)
+export MYUSER=$(get_user)
+export MYPUBIP1=$(get_ip "1")
+export MYPUBIP2=$(get_ip "2")
+
 
 echo "MYUSER:${MYUSER}"
 echo "MYPUBIP1:${MYPUBIP1} --> ssh $MYUSER@$MYPUBIP1"

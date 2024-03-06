@@ -77,7 +77,7 @@ az vm create \
     --resource-group ${MYAZRG} \
     --name ${MYAZVM} \
     --nics "${MYAZNICPRE}-1" \
-    --image ${MYAZVMOS} \
+    --image "${MYAZVMOS}" \
     --admin-username ${MYAZVMUSR} \
     --authentication-type ssh \
     --generate-ssh-keys

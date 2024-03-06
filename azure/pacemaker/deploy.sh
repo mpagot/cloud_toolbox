@@ -4,7 +4,7 @@
 
 . ./utils.sh
 
-echo "----- VALIDATION OF THE CONFIGURATIONS -----"
+test_step "VALIDATION OF THE CONFIGURATIONS"
 
 echo "MYAZRG=${MYAZRG}"
 echo "MYAZVNET=${MYAZVNET}"
@@ -15,12 +15,12 @@ echo "MYAZNICPRE=${MYAZNICPRE}"
 echo "MYAZVM=${MYAZVM}"
 echo "MYAZVMUSR=${MYAZVMUSR}"
 
-echo "----- CREATE RESOURCE GROUP -----"
+test_step "CREATE RESOURCE GROUP"
 az group create \
     --name ${MYAZRG} \
     --location ${MYAZREG}
 
-echo "----- CREATE 2 VMs -----"
+test_step "CREATE 2 VMs"
 for i in $(seq 2); do
   az vm create \
       --resource-group ${MYAZRG} \

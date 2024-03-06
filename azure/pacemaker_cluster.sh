@@ -6,7 +6,7 @@
 echo "----- VALIDATION OF THE CONFIGURATIONS -----"
 
 MYAZREG="${MYAZREG:-"eastus2"}"
-MYAZOS="${MYAZOS:-"SUSE:sles-sap-15-sp5:gen2:latest"}"
+MYAZVMOS="${MYAZVMOS:-"SUSE:sles-sap-15-sp5:gen2:latest"}"
 
 if [ -z "${MYNAME}" ]
 then
@@ -21,6 +21,7 @@ MYAZPIPPRE="${MYAZPIPPRE:-"${MYNAME}PublicIp"}"
 MYAZNSG="${MYAZNSG:-"${MYNAME}NSG"}"
 MYAZNICPRE="${MYAZNICPRE:-"${MYNAME}NIC"}"
 MYAZVM="${MYAZVM:-"${MYNAME}VM"}"
+MYAZVMUSR=cloudadmin
 
 echo "MYAZRG=${MYAZRG}"
 echo "MYAZVNET=${MYAZVNET}"
@@ -29,6 +30,7 @@ echo "MYAZPIPPRE=${MYAZPIPPRE}"
 echo "MYAZNSG=${MYAZNSG}"
 echo "MYAZNICPRE=${MYAZNICPRE}"
 echo "MYAZVM=${MYAZVM}"
+echo "MYAZVMUSR=${MYAZVMUSR}"
 
 echo "----- CREATE RESOURCE GROUP -----"
 az group create \
@@ -40,7 +42,9 @@ for i in $(seq 2); do
     az vm create \
         --resource-group ${MYAZRG} \
         --name "${MYAZVM}-$i" \
-        --image "${MYAZOS}" \
+        --image "${MYAZVMOS}" \
+        --admin-username ${MYAZVMUSR} \
+        --authentication-type ssh \
         --generate-ssh-keys
 done
 
@@ -60,7 +64,7 @@ export MYPUBIP2=$(az network public-ip show --ids $(az network nic show --ids $(
 echo "MYUSER:${MYUSER}"
 echo "MYPUBIP1:${MYPUBIP1} --> ssh $MYUSER@$MYPUBIP1"
 echo "MYPUBIP2:${MYPUBIP2} --> ssh $MYUSER@$MYPUBIP2"
-echo "Delete cmd: az group delete --name ${MYAZRG}  -y"
+echo "Delete cmd: az group delete --name ${MYAZRG} -y"
 
 
 echo "----- CHECK SSH CONNECTIVITY -----"

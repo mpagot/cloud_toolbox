@@ -4,7 +4,7 @@
 
 . ./utils.sh
 
-echo "----- VALIDATION OF THE CONFIGURATIONS -----"
+test_step "VALIDATION OF THE CONFIGURATIONS"
 
 echo "MYAZRG=${MYAZRG}"
 echo "MYAZVNET=${MYAZVNET}"
@@ -16,38 +16,21 @@ echo "MYAZVM=${MYAZVM}"
 echo "MYAZVMUSR=${MYAZVMUSR}"
 
 
-echo "----- GET USERNAME AND IP -----"
-export MYUSER=$(az vm list --resource-group ${MYAZRG} --query '[0].osProfile.adminUsername' -o tsv)
-export MYPUBIP1=$(az network public-ip show --ids $(az network nic show --ids $(az vm show \
-    --resource-group ${MYAZRG} \
-    --name "${MYAZVM}-1" \
-    --query "networkProfile.networkInterfaces[0].id" -o tsv) \
-    --query "ipConfigurations[0].publicIPAddress.id" -o tsv) --query "ipAddress" -o tsv)
-export MYPUBIP2=$(az network public-ip show --ids $(az network nic show --ids $(az vm show \
-    --resource-group ${MYAZRG} \
-    --name "${MYAZVM}-2" \
-    --query "networkProfile.networkInterfaces[0].id" -o tsv) \
-    --query "ipConfigurations[0].publicIPAddress.id" -o tsv) --query "ipAddress" -o tsv)
+test_step "GET USERNAME AND IP"
+export MYUSER=$(get_user)
+export MYPUBIP1=$(get_ip "1")
+export MYPUBIP2=$(get_ip "2")
 
-echo "MYUSER:${MYUSER}"
-echo "MYPUBIP1:${MYPUBIP1} --> ssh $MYUSER@$MYPUBIP1"
-echo "MYPUBIP2:${MYPUBIP2} --> ssh $MYUSER@$MYPUBIP2"
-echo "Delete cmd: az group delete --name ${MYAZRG} -y"
+test_step "CHECK SSH CONNECTIVITY"
+check_ssh_connectivity $MYPUBIP1
+check_ssh_connectivity $MYPUBIP2
 
+test_step "CREATE AND SHARE INTERNAL SSH KEYS"
+for i in $(seq 2); do
+  this_vm="${MYAZVM}-${i}"
+  this_ip=$(get_ip "${i}")
 
-echo "----- CHECK SSH CONNECTIVITY -----"
-ssh -l $MYUSER -o UpdateHostKeys=yes -o StrictHostKeyChecking=accept-new $MYUSER@$MYPUBIP1 test || echo "Something wrong with $MYUSER@$MYPUBIP1"
-ssh -l $MYUSER -o UpdateHostKeys=yes -o StrictHostKeyChecking=accept-new $MYUSER@$MYPUBIP2 test || echo "Something wrong with $MYUSER@$MYPUBIP2"
-
-echo "----- CREATE AND SHARE INTERNAL SSH KEYS -----"
-for this_vm in "${MYAZVM}-1" "${MYAZVM}-2"; do
-  this_ip=$(az network public-ip show --ids $(az network nic show --ids $(az vm show \
-    --resource-group ${MYAZRG} \
-    --name "${this_vm}" \
-    --query "networkProfile.networkInterfaces[0].id" -o tsv) \
-    --query "ipConfigurations[0].publicIPAddress.id" -o tsv) --query "ipAddress" -o tsv)
-
-  ssh $MYUSER@$this_ip sudo [ -d "/root/.ssh" ]
+  ssh $MYUSER@$this_ip sudo [ -d "/root/.ssh" ] || test_die "Missing /root/.ssh"
 
   # Generate public/private keys for root on hana hosts
   ssh $MYUSER@$this_ip sudo [ -f "/root/.ssh/id_rsa" ]
@@ -88,28 +71,31 @@ scp "/tmp/${MYAZVM}-2/root/id_rsa.pub" \
 ssh $MYUSER@$MYPUBIP1 sudo sh -c '"cat /tmp/id_rsa.pub >> /root/.ssh/authorized_keys"'
 ssh $MYUSER@$MYPUBIP2 sudo sh -c '"cat /tmp/id_rsa.pub >> /root/.ssh/authorized_keys"'
 
+test_step "ZYPPER REFRESH"
+ssh $MYUSER@$MYPUBIP1 sudo zypper refresh || test_die "Something wrong during zypper refresh on $MYUSER@$MYPUBIP1"
+ssh $MYUSER@$MYPUBIP2 sudo zypper refresh || test_die "Something wrong during zypper refresh on $MYUSER@$MYPUBIP2"
 
-echo "----- ZYPPER REFRESH -----"
-ssh $MYUSER@$MYPUBIP1 sudo zypper refresh || echo "Something wrong during zypper refresh on $MYUSER@$MYPUBIP1"
-ssh $MYUSER@$MYPUBIP2 sudo zypper refresh || echo "Something wrong during zypper refresh on $MYUSER@$MYPUBIP2"
-
-echo "----- CHECK FOR COROSYNC AND PACEMAKER PRESENCE -----"
+test_step "CHECK FOR COROSYNC AND PACEMAKER PRESENCE"
 ssh $MYUSER@$MYPUBIP1 zypper se -i -s corosync pacemaker
 ssh $MYUSER@$MYPUBIP2 zypper se -i -s corosync pacemaker
 
-echo "----- GENERATE AND SHARE COROSYNC KEY -----"
-ssh $MYUSER@$MYPUBIP1 sudo corosync-keygen
-ssh $MYUSER@$MYPUBIP1 sudo ls -lai /etc/corosync/authkey
-ssh $MYUSER@$MYPUBIP1 sudo cp /etc/corosync/authkey /tmp
-ssh $MYUSER@$MYPUBIP1 sudo chown $MYUSER /tmp/authkey
-scp $MYUSER@$MYPUBIP1:/tmp/authkey /tmp
-ssh $MYUSER@$MYPUBIP1 rm /tmp/authkey
-scp /tmp/authkey $MYUSER@$MYPUBIP2:/tmp/authkey
-rm /tmp/authkey
-ssh $MYUSER@$MYPUBIP2 sudo mv /tmp/authkey /etc/corosync
-ssh $MYUSER@$MYPUBIP2 sudo chown root: /etc/corosync/authkey
-ssh $MYUSER@$MYPUBIP2 sudo chmod 400 /etc/corosync/authkey
-ssh $MYUSER@$MYPUBIP2 sudo ls -lai /etc/corosync/authkey
+# Seems not needed
+#test_step "GENERATE AND SHARE COROSYNC KEY"
+#ssh $MYUSER@$MYPUBIP1 sudo corosync-keygen
+#ssh $MYUSER@$MYPUBIP1 sudo ls -lai /etc/corosync/authkey
+#ssh $MYUSER@$MYPUBIP1 sudo cp /etc/corosync/authkey /tmp
+#ssh $MYUSER@$MYPUBIP1 sudo chown $MYUSER /tmp/authkey
+#scp $MYUSER@$MYPUBIP1:/tmp/authkey /tmp
+#ssh $MYUSER@$MYPUBIP1 rm /tmp/authkey
+#scp /tmp/authkey $MYUSER@$MYPUBIP2:/tmp/authkey
+#rm /tmp/authkey
+#ssh $MYUSER@$MYPUBIP2 sudo mv /tmp/authkey /etc/corosync
+#ssh $MYUSER@$MYPUBIP2 sudo chown root: /etc/corosync/authkey
+#ssh $MYUSER@$MYPUBIP2 sudo chmod 400 /etc/corosync/authkey
+#ssh $MYUSER@$MYPUBIP2 sudo ls -lai /etc/corosync/authkey
 
-# ssh $MYUSER@$MYPUBIP1 sudo crm cluster init -y --name "${MYAZVM}-1 ${MYAZVM}-2"
-# ssh $MYUSER@$MYPUBIP2 sudo sudo crm cluster join -c "${MYAZVM}-1"
+test_step "CREATE THE CLUSTER"
+ssh $MYUSER@$MYPUBIP1 sudo crm cluster init -y -N "${MYAZVM}-1" -N "${MYAZVM}-2"
+# Join seems not to be needed
+# ssh $MYUSER@$MYPUBIP2 sudo crm cluster join -y -c "${MYAZVM}-1"
+

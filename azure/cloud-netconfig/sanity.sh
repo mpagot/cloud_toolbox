@@ -50,7 +50,7 @@ ssh ${SSH_DST} cat /etc/os-release
 
 test_step "Check that cloud-netconfig is installed"
 # zypper ref is neede for PAYG images
-ssh ${SSH_DST} sudeo zypper ref
+ssh ${SSH_DST} sudo zypper ref
 ssh ${SSH_DST} zypper se -s -i cloud-netconfig
 ssh ${SSH_DST} cat /etc/default/cloud-netconfig
 ssh ${SSH_DST} sudo journalctl |grep -E 'cloud-netconfig\\['
