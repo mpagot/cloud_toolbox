@@ -5,16 +5,7 @@
 
 . ./utils.sh
 
-echo "----- VALIDATION OF THE CONFIGURATIONS -----"
-
-echo "MYAZRG=${MYAZRG}"
-echo "MYAZVNET=${MYAZVNET}"
-echo "MYAZSNET=${MYAZSNET}"
-echo "MYAZPIPPRE=${MYAZPIPPRE}"
-echo "MYAZNSG=${MYAZNSG}"
-echo "MYAZNICPRE=${MYAZNICPRE}"
-echo "MYAZVM=${MYAZVM}"
-echo "MYAZVMUSR=${MYAZVMUSR}"
+validate_options
 
 echo "----- GET USERNAME AND IP -----"
 export MYUSER=$(get_user)

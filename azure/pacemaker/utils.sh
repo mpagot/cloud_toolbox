@@ -1,5 +1,7 @@
 MYAZREG="${MYAZREG:-"eastus2"}"
 MYAZVMOS="${MYAZVMOS:-"SUSE:sles-sap-15-sp5:gen2:latest"}"
+MYAZVIP="${MYAZVIP:-"10.0.0.11"}"
+MYAZVMUSR=cloudadmin
 
 if [ -z "${MYNAME}" ]
 then
@@ -14,7 +16,7 @@ MYAZPIPPRE="${MYAZPIPPRE:-"${MYNAME}PublicIp"}"
 MYAZNSG="${MYAZNSG:-"${MYNAME}NSG"}"
 MYAZNICPRE="${MYAZNICPRE:-"${MYNAME}NIC"}"
 MYAZVM="${MYAZVM:-"${MYNAME}VM"}"
-MYAZVMUSR=cloudadmin
+MYAZVIPRES="${MYAZVIPRES:-"rsc_ip_${MYNAME}"}"
 
 test_step () {
   echo "##############################"
@@ -45,4 +47,19 @@ check_ssh_connectivity () {
         -o UpdateHostKeys=yes -o StrictHostKeyChecking=accept-new \
         $MYUSER@$1 true \
         || test_die "Something wrong with $MYUSER@$1"
+}
+
+
+validate_options () {
+  test_step "VALIDATION OF THE OPTIONS"
+  echo "MYAZRG=${MYAZRG}"
+  echo "MYAZVNET=${MYAZVNET}"
+  echo "MYAZSNET=${MYAZSNET}"
+  echo "MYAZPIPPRE=${MYAZPIPPRE}"
+  echo "MYAZNSG=${MYAZNSG}"
+  echo "MYAZNICPRE=${MYAZNICPRE}"
+  echo "MYAZVM=${MYAZVM}"
+  echo "MYAZVMUSR=${MYAZVMUSR}"
+  echo "MYAZVIPRES:${MYAZVIPRES}"
+  echo "MYAZVIP:${MYAZVIP}"
 }

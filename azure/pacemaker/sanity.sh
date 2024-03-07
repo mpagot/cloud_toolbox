@@ -5,16 +5,7 @@
 
 . ./utils.sh
 
-test_step "VALIDATION OF THE CONFIGURATIONS"
-echo "MYAZRG=${MYAZRG}"
-echo "MYAZVNET=${MYAZVNET}"
-echo "MYAZSNET=${MYAZSNET}"
-echo "MYAZPIPPRE=${MYAZPIPPRE}"
-echo "MYAZNSG=${MYAZNSG}"
-echo "MYAZNICPRE=${MYAZNICPRE}"
-echo "MYAZVM=${MYAZVM}"
-echo "MYAZVMUSR=${MYAZVMUSR}"
-
+validate_options
 
 test_step "GET USERNAME AND IP"
 export MYUSER=$(get_user)
@@ -50,19 +41,27 @@ for i in $(seq 2); do
   ssh ${SSH_DST} sudo crm status
 done
 
-test_step "[${this_vm}] Ping by hostname"
-ssh ${MYUSER}@${MYPUBIP1} ping -c 3 ${MYAZVM}-2
-ssh ${MYUSER}@${MYPUBIP2} ping -c 3 ${MYAZVM}-1
+test_step "Ping by hostname"
+ssh ${MYUSER}@${MYPUBIP1} ping -c 3 ${MYAZVM}-2 || test_die "${MYAZVM}-1 cannot ping ${MYAZVM}-2 by hostname"
+ssh ${MYUSER}@${MYPUBIP2} ping -c 3 ${MYAZVM}-1 || test_die "${MYAZVM}-2 cannot ping ${MYAZVM}-1 by hostname"
 
-test_step "[${this_vm}] Ping using the private IP"
-export MYPRIVIP1=$(ssh ${MYUSER}@${MYPUBIP1} ip a show eth0 | grep -oP '(?<=inet ).*(?=/24.*)')
-export MYPRIVIP2=$(ssh ${MYUSER}@${MYPUBIP2} ip a show eth0 | grep -oP '(?<=inet ).*(?=/24.*)')
-ssh ${MYUSER}@${MYPUBIP1} ping -c 3 ${MYPRIVIP2}
-ssh ${MYUSER}@${MYPUBIP2} ping -c 3 ${MYPRIVIP1}
+test_step "Ping using the private IP"
+MYPRIVIP1=$(ssh ${MYUSER}@${MYPUBIP1} ip a show eth0 | grep -oP '(?<=inet ).*(?=/24.*)' | grep -v "${MYAZVIP}" )
+MYPRIVIP2=$(ssh ${MYUSER}@${MYPUBIP2} ip a show eth0 | grep -oP '(?<=inet ).*(?=/24.*)' | grep -v "${MYAZVIP}" )
+ssh ${MYUSER}@${MYPUBIP1} ping -c 3 ${MYPRIVIP2} || test_die "${MYAZVM}-1 cannot ping ${MYAZVM}-2 by private ip ${MYPRIVIP2}"
+ssh ${MYUSER}@${MYPUBIP2} ping -c 3 ${MYPRIVIP1} || test_die "${MYAZVM}-2 cannot ping ${MYAZVM}-1 by private ip ${MYPRIVIP1}"
 
-test_step "[${this_vm}] Passwordless root ssh"
+test_step "Passwordless root ssh"
 ssh ${MYUSER}@${MYPUBIP1} sudo ssh root@${MYPRIVIP2} hostname | grep "${MYAZVM}-2"
 ssh ${MYUSER}@${MYPUBIP1} sudo ssh root@${MYPRIVIP2} whoami | grep root
 ssh ${MYUSER}@${MYPUBIP2} sudo ssh root@${MYPRIVIP1} hostname | grep "${MYAZVM}-1"
 ssh ${MYUSER}@${MYPUBIP2} sudo ssh root@${MYPRIVIP1} whoami | grep root
 
+test_step "IP cluster resource"
+ssh ${MYUSER}@${MYPUBIP1} sudo crm status | grep "${MYAZVIPRES}" || test_die "${MYAZVIPRES} not included in the crm status"
+ssh ${MYUSER}@${MYPUBIP1} ip a show eth0 | grep 'inet ' | grep "${MYAZVIP}" || test_die "${MYAZVIP} missing in the eth0 of ${MYAZVM}-1"
+! ssh ${MYUSER}@${MYPUBIP2} ip a show eth0 | grep 'inet ' | grep "${MYAZVIP}" || test_die "${MYAZVIP} present in the eth0 of ${MYAZVM}-1"
+ssh ${MYUSER}@${MYPUBIP1} ping -c 3 ${MYAZVIP} || test_die "${MYAZVIP} not pingable from ${MYAZVM}-1"
+
+# It fails
+#ssh ${MYUSER}@${MYPUBIP2} ping -c 3 ${MYAZVIP} || test_die "${MYAZVIP} not pingable from ${MYAZVM}-2"

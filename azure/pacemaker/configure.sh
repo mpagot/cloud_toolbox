@@ -4,17 +4,7 @@
 
 . ./utils.sh
 
-test_step "VALIDATION OF THE CONFIGURATIONS"
-
-echo "MYAZRG=${MYAZRG}"
-echo "MYAZVNET=${MYAZVNET}"
-echo "MYAZSNET=${MYAZSNET}"
-echo "MYAZPIPPRE=${MYAZPIPPRE}"
-echo "MYAZNSG=${MYAZNSG}"
-echo "MYAZNICPRE=${MYAZNICPRE}"
-echo "MYAZVM=${MYAZVM}"
-echo "MYAZVMUSR=${MYAZVMUSR}"
-
+validate_options
 
 test_step "GET USERNAME AND IP"
 export MYUSER=$(get_user)
@@ -28,16 +18,21 @@ check_ssh_connectivity $MYPUBIP2
 test_step "CREATE AND SHARE INTERNAL SSH KEYS"
 for i in $(seq 2); do
   this_vm="${MYAZVM}-${i}"
+  echo "Get the Public IP of the ${this_vm}"
   this_ip=$(get_ip "${i}")
 
+  echo "Check if the folder /root/.ssh exist of the ${this_vm}"
   ssh $MYUSER@$this_ip sudo [ -d "/root/.ssh" ] || test_die "Missing /root/.ssh"
 
-  # Generate public/private keys for root on hana hosts
-  ssh $MYUSER@$this_ip sudo [ -f "/root/.ssh/id_rsa" ]
-  echo $?
+  echo "Check if the key /root/.ssh/id_rsa exist of the ${this_vm}"
+  if ssh $MYUSER@$this_ip sudo [ -f "/root/.ssh/id_rsa" ] ; then
+    echo "The key is already there"
+    continue
+  fi
 
-  # Generate a temp key on the JumpHost
+  # Generate public/private keys for root on hana hosts
   this_tmp="/tmp/${this_vm}/root"
+  echo "Generate a temp key on the JumpHost in the folder ${this_tmp}"
   rm -rf "${this_tmp}"
   mkdir -p "${this_tmp}"
   ssh-keygen \
@@ -62,6 +57,10 @@ for i in $(seq 2); do
 done
 
 # Copy the pub key for root on vm1 to host vm2
+#if ssh $MYUSER@$MYPUBIP1 sudo grep 'Temp internal cluster key for root on' /root/.ssh/authorized_keys ; then
+#    echo "The key is already authorized"
+#fi
+
 scp "/tmp/${MYAZVM}-1/root/id_rsa.pub" \
   "$MYUSER@$MYPUBIP2:/tmp/id_rsa.pub"
 scp "/tmp/${MYAZVM}-2/root/id_rsa.pub" \
@@ -99,3 +98,12 @@ ssh $MYUSER@$MYPUBIP1 sudo crm cluster init -y -N "${MYAZVM}-1" -N "${MYAZVM}-2"
 # Join seems not to be needed
 # ssh $MYUSER@$MYPUBIP2 sudo crm cluster join -y -c "${MYAZVM}-1"
 
+ssh $MYUSER@$MYPUBIP1 "sudo crm configure primitive \
+      ${MYAZVIPRES} \
+      ocf:heartbeat:IPaddr2 \
+      meta \
+      target-role=\"Started\" \
+      operations \
+      \\\$id=\"${MYAZVIPRES}-operations\" \
+      op monitor interval=\"10s\" timeout=\"20s\" \
+      params ip=\"${MYAZVIP}\""
