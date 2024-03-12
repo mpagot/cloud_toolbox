@@ -28,6 +28,9 @@ for i in $(seq 2); do
   ssh ${SSH_DST} ip -br -c addr show eth0
   ssh ${SSH_DST} hostname -i
   ssh ${SSH_DST} cat /etc/host.conf | grep multi
+  # In Azure, when using a load balancer,  it should be disabled.
+  # Otherwise it can interfere with the load balancer health probe
+  ssh ${SSH_DST} sudo sysctl -a | grep net.ipv4.tcp_timestamps
 
   test_step "[${this_vm}] Check how many IPv4 IpConfigs"
   ssh ${SSH_DST} ip a show eth0 | grep -c 'inet '
