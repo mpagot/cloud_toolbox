@@ -93,8 +93,7 @@ az vm availability-set create \
 #   - VMs
 #   - for each of them open port 80
 #   - link their NIC/ipconfigs to the load balancer to be managed
-for NUM in 1 2
-do
+for NUM in $(seq 2); do
   THIS_VM="${MYNAME}-vm-0${NUM}"
 
   # Notice as the VM creation refer to an external cloud-init
@@ -110,16 +109,16 @@ do
     --admin-username $MY_USERNAME \
     --vnet-name $MY_VNET \
     --subnet $MY_SUBNET \
-    --public-ip-address $MY_PUBIP \
+    --public-ip-address "" \
+    --availability-set $MY_AS \
+    --nsg $MY_NSG \
+    --custom-data cloud-init-web.txt \
     --generate-ssh-keys
 
 
   echo "--> az vm open-port -n $MYNAME-vm-0$NUM"
   az vm open-port -g $MY_GROUP --name $THIS_VM --port 80
 
-
-  # the nested az commands is to get the NIC and the ipconfig names
-  # directly from the just created VM metadata
   echo "--> az network nic ip-config address-pool add"
   THIS_IP_CONFIG=$(az network nic show --id $(az vm show -g $MY_GROUP -n $THIS_VM --query 'networkProfile.networkInterfaces[0].id' -o tsv) --query 'ipConfigurations[0].name' -o tsv)
   THIS_NIC=$(az network nic show --id $(az vm show -g $MY_GROUP -n $THIS_VM --query 'networkProfile.networkInterfaces[0].id' -o tsv) --query 'name' -o tsv)
@@ -131,7 +130,7 @@ do
     --nic-name ${THIS_NIC}
 done
 
-echo "--> az vm create -n $THIS_VM"
+echo "--> az vm create -n $MY_BASTION"
 az vm create \
   -n $MY_BASTION \
   -g $MY_GROUP \
@@ -141,10 +140,7 @@ az vm create \
   --admin-username $MY_USERNAME \
   --vnet-name $MY_VNET \
   --subnet $MY_SUBNET \
-  --public-ip-address "" \
-  --availability-set $MY_AS \
-  --nsg $MY_NSG \
-  --custom-data cloud-init-web.txt \
+  --public-ip-address $MY_PUBIP \
   --generate-ssh-keys
 
 # Health probe is using the port exposed by the cluster RA azure-lb

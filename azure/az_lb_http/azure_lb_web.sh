@@ -90,9 +90,8 @@ az vm availability-set create \
 # Create 3:
 #   - VMs
 #   - for each of them open port 80
-#   - link their NIC/ip-configs to the load balancer to be managed
-for NUM in 1 2 3
-do
+#   - link their NIC/ipconfigs to the load balancer to be managed
+for NUM in $(seq 3); do
   THIS_VM="${MYNAME}-vm-0${NUM}"
 
   # Notice as the VM creation refer to an external cloud-init
@@ -119,11 +118,12 @@ do
   az vm open-port -g $MY_GROUP --name $THIS_VM --port 80
 
 
-  # the nested az commands is to get the NIC and the ipconfig names
+  # These first two az commands are to get the NIC and the ipconfig names
   # directly from the just created VM metadata
   echo "--> az network nic ip-config address-pool add"
   THIS_IP_CONFIG=$(az network nic show --id $(az vm show -g $MY_GROUP -n $THIS_VM --query 'networkProfile.networkInterfaces[0].id' -o tsv) --query 'ipConfigurations[0].name' -o tsv)
   THIS_NIC=$(az network nic show --id $(az vm show -g $MY_GROUP -n $THIS_VM --query 'networkProfile.networkInterfaces[0].id' -o tsv) --query 'name' -o tsv)
+
   az network nic ip-config address-pool add \
     -g $MY_GROUP \
     --lb-name $MY_LB \
