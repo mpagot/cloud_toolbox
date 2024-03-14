@@ -1,11 +1,11 @@
 # Create in Azure:
-# 3 VM 
+# 2 VM 
 # 1 public IP
 # 1 LB to dinamically assign the PublicIP to the 3 VM
 # each VM has a simple web server installed (by cloud-init script)
-# the LB health probe is pointed to port 80 of the 3 VMs
-#
-# https://learn.microsoft.com/en-us/azure/load-balancer/quickstart-load-balancer-standard-internal-cli
+# the VMs are part of a pacemaker cluster
+# the cluster has a azure-lb RA
+# the LB health probe is pointed to the port exposed by RA
 
 # configureble parameters
 if [ -z "${MYNAME}" ]
@@ -28,6 +28,7 @@ MY_PUBIP="${MYNAME}_pubip"
 MY_LB="${MYNAME}_loadbalancer"
 MY_BE_POOL="${MYNAME}_backend_pool"
 MY_HPROBE="${MYNAME}_health"
+MY_HPROBE_PORT="62500"
 MY_FIP="${MYNAME}_frontend_ip"
 
 
@@ -55,7 +56,7 @@ az network nsg create \
 
 
 # Create the only one public IP of this deployment,
-# it will be assigned and managed by the load balancer
+# it will be assigned to ???
 echo "--> az network public-ip create"
 az network public-ip create \
     --resource-group $MY_GROUP \
@@ -67,31 +68,31 @@ az network public-ip create \
 
 # Create the load balancer entity.
 # Mostly this one is just a "group" definition
-# to link backend (3 VMs) and frontend (the Pub IP) resources
+# to link backend (2 VMs) and frontend (the Pub IP) resources
 echo "--> az network lb create"
 az network lb create \
     -g $MY_GROUP \
     -n $MY_LB \
     --sku Basic \
-    --public-ip-address $MY_PUBIP \
     --backend-pool-name $MY_BE_POOL \
     --frontend-ip-name $MY_FIP
 
 
-# All the 3 VM will be later assigned to it.
+# All the 2 VM will be later assigned to it.
 # The load balancer does not explicitly knows about it
 echo "--> az vm availability-set create"
 az vm availability-set create \
   -n $MY_AS \
   -l $MY_REGION \
-  -g $MY_GROUP
+  -g $MY_GROUP \
+  --platform-fault-domain-count 2
 
 
 # Create 3:
 #   - VMs
 #   - for each of them open port 80
 #   - link their NIC/ip-configs to the load balancer to be managed
-for NUM in 1 2 3
+for NUM in 1 2
 do
   THIS_VM="${MYNAME}-vm-0${NUM}"
 
@@ -132,22 +133,25 @@ do
     --nic-name ${THIS_NIC}
 done
 
-
-# Health probe is using the port 80
-# to understand if each of the VM and nginx in them
-# are OK.
+# Health probe is using the port exposed by the cluster RA azure-lb
+# to understand if each of the VM in the cluster is OK
+# Is probably eventually the cluster itself that
+# cares to monitor the below service (port 80)
 echo "--> az network lb probe create"
 az network lb probe create \
     --resource-group $MY_GROUP \
     --lb-name $MY_LB \
     --name $MY_HPROBE \
-    --port 80 \
+    --port ${MY_HPROBE_PORT} \
     --protocol Tcp \
     --interval 5 \
     --probe-threshold 2
 
 
 # Configure the load balancer behavior
+# These two are from qe-sap-deployment
+#  - idle_timeout_in_minutes        = 30
+#  - enable_floating_ip             = "true"
 echo "--> az network lb rule create"
 az network lb rule create \
     -g $MY_GROUP \
@@ -156,6 +160,8 @@ az network lb rule create \
     --protocol Tcp \
     --frontend-ip-name $MY_FIP --frontend-port 80 \
     --backend-pool-name $MY_BE_POOL --backend-port 80 \
+    --idle-timeout 30 \
+    --enable-floating-ip 1 \
     --probe-name $MY_HPROBE
 
 
