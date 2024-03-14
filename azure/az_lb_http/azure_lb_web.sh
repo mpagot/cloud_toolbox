@@ -7,7 +7,7 @@
 #
 # https://learn.microsoft.com/en-us/azure/load-balancer/quickstart-load-balancer-standard-internal-cli
 
-# configureble parameters
+# configurable parameters
 if [ -z "${MYNAME}" ]
 then
   echo "MYNAME must be set to derive all the other settings"
@@ -31,7 +31,7 @@ MY_HPROBE="${MYNAME}_health"
 MY_FIP="${MYNAME}_frontend_ip"
 
 
-# Create a resource group to contein all the resources
+# Create a resource group to contain all the resources
 echo "--> az group create -g $MY_GROUP -l $MY_REGION"
 az group create -g $MY_GROUP -l $MY_REGION
 
@@ -67,7 +67,7 @@ az network public-ip create \
 
 # Create the load balancer entity.
 # Mostly this one is just a "group" definition
-# to link backend (3 VMs) and frontend (the Pub IP) resources
+# to link back-end (3 VMs) and frontend (the Pub IP) resources
 echo "--> az network lb create"
 az network lb create \
     -g $MY_GROUP \

@@ -1,13 +1,13 @@
 # Create in Azure:
 # 2 VM 
 # 1 public IP
-# 1 LB to dinamically assign the PublicIP to the 3 VM
+# 1 LB to dynamically assign the PublicIP to the 3 VM
 # each VM has a simple web server installed (by cloud-init script)
 # the VMs are part of a pacemaker cluster
 # the cluster has a azure-lb RA
 # the LB health probe is pointed to the port exposed by RA
 
-# configureble parameters
+# configurable parameters
 if [ -z "${MYNAME}" ]
 then
   echo "MYNAME must be set to derive all the other settings"
@@ -30,9 +30,10 @@ MY_BE_POOL="${MYNAME}_backend_pool"
 MY_HPROBE="${MYNAME}_health"
 MY_HPROBE_PORT="62500"
 MY_FIP="${MYNAME}_frontend_ip"
+MY_BASTION="${MYNAME}-vm-bastion"
 
 
-# Create a resource group to contein all the resources
+# Create a resource group to contain all the resources
 echo "--> az group create -g $MY_GROUP -l $MY_REGION"
 az group create -g $MY_GROUP -l $MY_REGION
 
@@ -56,7 +57,7 @@ az network nsg create \
 
 
 # Create the only one public IP of this deployment,
-# it will be assigned to ???
+# it will be assigned to the 3rd VM (bastion role)
 echo "--> az network public-ip create"
 az network public-ip create \
     --resource-group $MY_GROUP \
@@ -68,7 +69,7 @@ az network public-ip create \
 
 # Create the load balancer entity.
 # Mostly this one is just a "group" definition
-# to link backend (2 VMs) and frontend (the Pub IP) resources
+# to link back-end (2 VMs) and front-end (the Pub IP) resources
 echo "--> az network lb create"
 az network lb create \
     -g $MY_GROUP \
@@ -88,10 +89,10 @@ az vm availability-set create \
   --platform-fault-domain-count 2
 
 
-# Create 3:
+# Create 2:
 #   - VMs
 #   - for each of them open port 80
-#   - link their NIC/ip-configs to the load balancer to be managed
+#   - link their NIC/ipconfigs to the load balancer to be managed
 for NUM in 1 2
 do
   THIS_VM="${MYNAME}-vm-0${NUM}"
@@ -109,10 +110,7 @@ do
     --admin-username $MY_USERNAME \
     --vnet-name $MY_VNET \
     --subnet $MY_SUBNET \
-    --public-ip-address "" \
-    --availability-set $MY_AS \
-    --nsg $MY_NSG \
-    --custom-data cloud-init-web.txt \
+    --public-ip-address $MY_PUBIP \
     --generate-ssh-keys
 
 
@@ -132,6 +130,22 @@ do
     --ip-config-name ${THIS_IP_CONFIG} \
     --nic-name ${THIS_NIC}
 done
+
+echo "--> az vm create -n $THIS_VM"
+az vm create \
+  -n $MY_BASTION \
+  -g $MY_GROUP \
+  -l $MY_REGION \
+  --size Standard_B1s \
+  --image $MY_OS \
+  --admin-username $MY_USERNAME \
+  --vnet-name $MY_VNET \
+  --subnet $MY_SUBNET \
+  --public-ip-address "" \
+  --availability-set $MY_AS \
+  --nsg $MY_NSG \
+  --custom-data cloud-init-web.txt \
+  --generate-ssh-keys
 
 # Health probe is using the port exposed by the cluster RA azure-lb
 # to understand if each of the VM in the cluster is OK
@@ -166,6 +180,6 @@ az network lb rule create \
 
 
 echo "------------------------------------------------------"
-echo "|   Open the page at http://$(az network public-ip show -g $MY_GROUP -n $MY_PUBIP --query 'ipAddress' -o tsv)"
+echo "|   Bastion ssh cloudadmin@$(az network public-ip show -g $MY_GROUP -n $MY_PUBIP --query 'ipAddress' -o tsv)"
 echo "|   Destroy all with 'az group delete --name $MY_GROUP -y'"
 echo "------------------------------------------------------"
