@@ -7,43 +7,7 @@
 # the cluster has a azure-lb RA
 # the LB health probe is pointed to the port exposed by RA
 
-# configurable parameters
-if [ -z "${MYNAME}" ]
-then
-  echo "MYNAME must be set to derive all the other settings"
-  exit 1
-fi
-
-if [ -z "${MYSSHKEY}" ]
-then
-  echo "MYSSHKEY must be set to derive all the other settings"
-  exit 1
-fi
-
-if [ ! -f "${MYSSHKEY}" ]
-then
-  echo "provided ssh key file MYSSHKEY:${MYSSHKEY} couldn't be found"
-  exit 1
-fi
-
-MY_USERNAME=cloudadmin
-MY_REGION="${MY_REGION:-"northeurope"}"
-MY_OS="${MY_OS:-"SUSE:sles-sap-15-sp5:gen2:latest"}"
-
-# set of names reused more than one time
-MY_GROUP="${MYNAME}_lb_rg"
-MY_SUBNET="${MYNAME}_sn"
-MY_NSG="${MYNAME}_nsg"
-MY_AS="${MYNAME}_as"
-MY_VNET="${MYNAME}_vnet"
-MY_PUBIP="${MYNAME}_pubip"
-MY_LB="${MYNAME}_loadbalancer"
-MY_BE_POOL="${MYNAME}_backend_pool"
-MY_HPROBE="${MYNAME}_health"
-MY_HPROBE_PORT="62500"
-MY_FIP="${MYNAME}_frontend_ip"
-MY_BASTION="${MYNAME}-vm-bastion"
-
+. ./utils.sh
 
 # Create a resource group to contain all the resources
 echo "--> az group create -g $MY_GROUP -l $MY_REGION"
@@ -125,7 +89,7 @@ for NUM in $(seq 2); do
     --availability-set $MY_AS \
     --nsg $MY_NSG \
     --custom-data cloud-init-web.txt \
-    --ssh-key-values $MYSSHKEY
+    --ssh-key-values "${MYSSHKEY}.pub"
 
 
   echo "--> az vm open-port -n $MYNAME-vm-0$NUM"
@@ -153,7 +117,7 @@ az vm create \
   --vnet-name $MY_VNET \
   --subnet $MY_SUBNET \
   --public-ip-address $MY_PUBIP \
-  --ssh-key-values $MYSSHKEY
+  --ssh-key-values "${MYSSHKEY}.pub"
 
 # Health probe is using the port exposed by the cluster RA azure-lb
 # to understand if each of the VM in the cluster is OK
@@ -186,8 +150,4 @@ az network lb rule create \
     --enable-floating-ip 1 \
     --probe-name $MY_HPROBE
 
-
-echo "------------------------------------------------------"
-echo "|   Bastion ssh cloudadmin@$(az network public-ip show -g $MY_GROUP -n $MY_PUBIP --query 'ipAddress' -o tsv)"
-echo "|   Destroy all with 'az group delete --name $MY_GROUP -y'"
-echo "------------------------------------------------------"
+print_howto
