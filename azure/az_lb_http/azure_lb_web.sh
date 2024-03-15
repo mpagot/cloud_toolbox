@@ -15,8 +15,8 @@ then
 fi
 
 MY_USERNAME=cloudadmin
-MY_REGION=northeurope
-MY_OS=SUSE:sles-sap-15-sp5:gen2:latest
+MY_REGION="${MY_REGION:-"northeurope"}"
+MY_OS="${MY_OS:-"SUSE:sles-sap-15-sp5:gen2:latest"}"
 
 # set of names reused more than one time
 MY_GROUP="${MYNAME}_lb_rg"

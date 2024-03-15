@@ -14,9 +14,21 @@ then
   exit 1
 fi
 
+if [ -z "${MYSSHKEY}" ]
+then
+  echo "MYSSHKEY must be set to derive all the other settings"
+  exit 1
+fi
+
+if [ ! -f "${MYSSHKEY}" ]
+then
+  echo "provided ssh key file MYSSHKEY:${MYSSHKEY} couldn't be found"
+  exit 1
+fi
+
 MY_USERNAME=cloudadmin
-MY_REGION=northeurope
-MY_OS=SUSE:sles-sap-15-sp5:gen2:latest
+MY_REGION="${MY_REGION:-"northeurope"}"
+MY_OS="${MY_OS:-"SUSE:sles-sap-15-sp5:gen2:latest"}"
 
 # set of names reused more than one time
 MY_GROUP="${MYNAME}_lb_rg"
@@ -113,7 +125,7 @@ for NUM in $(seq 2); do
     --availability-set $MY_AS \
     --nsg $MY_NSG \
     --custom-data cloud-init-web.txt \
-    --generate-ssh-keys
+    --ssh-key-values $MYSSHKEY
 
 
   echo "--> az vm open-port -n $MYNAME-vm-0$NUM"
@@ -141,7 +153,7 @@ az vm create \
   --vnet-name $MY_VNET \
   --subnet $MY_SUBNET \
   --public-ip-address $MY_PUBIP \
-  --generate-ssh-keys
+  --ssh-key-values $MYSSHKEY
 
 # Health probe is using the port exposed by the cluster RA azure-lb
 # to understand if each of the VM in the cluster is OK
