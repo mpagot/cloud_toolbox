@@ -26,6 +26,7 @@ fi
 MY_USERNAME=cloudadmin
 MY_REGION="${MY_REGION:-"northeurope"}"
 MY_OS="${MY_OS:-"SUSE:sles-sap-15-sp5:gen2:latest"}"
+MY_PRIV_IP_RANGE="${MY_PRIV_IP_RANGE:-"192.168.1"}"
 
 # set of names reused more than one time
 MY_GROUP="${MYNAME}_lb_rg"
@@ -51,4 +52,9 @@ print_howto () {
 
 get_pub_ip () {
   az network public-ip show -g $MY_GROUP -n $MY_PUBIP --query 'ipAddress' -o tsv
+}
+
+test_die () {
+  echo "DIE : $1"
+  exit 1
 }

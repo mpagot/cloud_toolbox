@@ -22,7 +22,7 @@ az network vnet create \
   -l $MY_REGION \
   --address-prefixes '192.168.0.0/16' \
   --subnet-name $MY_SUBNET \
-  --subnet-prefixes '192.168.1.0/24'
+  --subnet-prefixes "${MY_PRIV_IP_RANGE}.0/24"
 
 
 # Create a Network Security Group only needed later when creating the VM
@@ -75,7 +75,7 @@ for NUM in $(seq 2); do
   # Notice as the VM creation refer to an external cloud-init
   # configuration file that is in charge to install and setup
   # the nginx server.
-  echo "--> az vm create -n $THIS_VM"
+  echo "--> az vm create -n ${THIS_VM}"
   az vm create \
     -n $THIS_VM \
     -g $MY_GROUP \
@@ -95,15 +95,28 @@ for NUM in $(seq 2); do
   echo "--> az vm open-port -n $MYNAME-vm-0$NUM"
   az vm open-port -g $MY_GROUP --name $THIS_VM --port 80
 
+  THIS_NIC_ID=$(az vm show -g $MY_GROUP -n $THIS_VM --query 'networkProfile.networkInterfaces[0].id' -o tsv)
+  THIS_IP_CONFIG=$(az network nic show --id $THIS_NIC_ID --query 'ipConfigurations[0].name' -o tsv)
+  THIS_NIC=$(az network nic show --id $THIS_NIC_ID --query 'name' -o tsv)
   echo "--> az network nic ip-config address-pool add"
-  THIS_IP_CONFIG=$(az network nic show --id $(az vm show -g $MY_GROUP -n $THIS_VM --query 'networkProfile.networkInterfaces[0].id' -o tsv) --query 'ipConfigurations[0].name' -o tsv)
-  THIS_NIC=$(az network nic show --id $(az vm show -g $MY_GROUP -n $THIS_VM --query 'networkProfile.networkInterfaces[0].id' -o tsv) --query 'name' -o tsv)
+  echo "The just created VM ${THIS_VM} has THIS_IP_CONFIG:${THIS_IP_CONFIG} and THIS_NIC:${THIS_NIC}"
+
+  # Change the IpConfig to use a static IP: https://documentation.suse.com/sle-ha/15-SP5/html/SLE-HA-all/article-installation.html#vl-ha-inst-quick-req-other
+  echo "--> az network nic ip-config update"
+  az network nic ip-config update \
+    --name $THIS_IP_CONFIG \
+    --resource-group $MY_GROUP \
+    --nic-name $THIS_NIC \
+    --private-ip-address "${MY_PRIV_IP_RANGE}.4${NUM}"
+
+  # Add the IpConfig to the LB pool
+  echo "--> az network nic ip-config address-pool add"
   az network nic ip-config address-pool add \
     -g $MY_GROUP \
     --lb-name $MY_LB \
     --address-pool $MY_BE_POOL \
-    --ip-config-name ${THIS_IP_CONFIG} \
-    --nic-name ${THIS_NIC}
+    --ip-config-name $THIS_IP_CONFIG \
+    --nic-name $THIS_NIC
 done
 
 echo "--> az vm create -n $MY_BASTION"
@@ -128,7 +141,7 @@ az network lb probe create \
     --resource-group $MY_GROUP \
     --lb-name $MY_LB \
     --name $MY_HPROBE \
-    --port ${MY_HPROBE_PORT} \
+    --port $MY_HPROBE_PORT \
     --protocol Tcp \
     --interval 5 \
     --probe-threshold 2
