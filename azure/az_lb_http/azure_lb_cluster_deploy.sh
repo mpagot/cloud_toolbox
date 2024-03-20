@@ -46,11 +46,12 @@ az network public-ip create \
 # Create the load balancer entity.
 # Mostly this one is just a "group" definition
 # to link back-end (2 VMs) and front-end (the Pub IP) resources
+# SKU Standard (and not Basic) is needed to get some Metrics
 echo "--> az network lb create"
 az network lb create \
     -g $MY_GROUP \
     -n $MY_LB \
-    --sku Basic \
+    --sku Standard \
     --backend-pool-name $MY_BE_POOL \
     --frontend-ip-name $MY_FIP
 
