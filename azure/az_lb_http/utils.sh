@@ -40,7 +40,8 @@ MY_LB="${MYNAME}_loadbalancer"
 MY_BE_POOL="${MYNAME}_backend_pool"
 MY_HPROBE="${MYNAME}_health"
 MY_HPROBE_PORT="62500"
-MY_FIP="${MYNAME}_frontend_ip"
+MY_FIP_NAME="${MYNAME}_frontend_ip"
+MY_FIP="${MY_PRIV_IP_RANGE}.50"
 MY_BASTION="${MYNAME}-vm-bastion"
 
 print_howto () {

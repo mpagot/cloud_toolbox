@@ -50,6 +50,9 @@ for NUM in $(seq $MY_NUM); do
 
   test_step "[${this_vm}] connectivity"
   for OTHER_NUM in $(seq $MY_NUM); do
+    if [ "$NUM" -eq "$OTHER_NUM" ]; then
+        continue
+    fi
     other_vm="${MYNAME}-vm-0${OTHER_NUM}"
     test_step "[${this_vm}]-->[${other_vm}] ping IP"
     ssh -i $MYSSHKEY $MY_USERNAME@$MY_PUBIP_ADDR 'ssh '"${MY_USERNAME}@${this_vm}"' ping -c 10 192.168.1.4'"${OTHER_NUM}" || test_die "${this_vm} is not able to ping ${other_vm} at 192.168.1.4${OTHER_NUM}"
@@ -61,10 +64,14 @@ for NUM in $(seq $MY_NUM); do
     ssh -i $MYSSHKEY $MY_USERNAME@$MY_PUBIP_ADDR 'ssh '"${MY_USERNAME}@${this_vm}"' sudo ssh '"${MY_USERNAME}@${other_vm}"' whoami'
   done
 
+  test_step "[${this_vm}] load balancer"
+  ssh -i $MYSSHKEY $MY_USERNAME@$MY_PUBIP_ADDR 'ssh '"${MY_USERNAME}@${this_vm}"' curl -H "Metadata:true" --noproxy "*" "http://169.254.169.254:80/metadata/loadbalancer?api-version=2020-10-01" | python3 -m json.tool'
+
   test_step "[${this_vm}] webserver"
   ssh -i $MYSSHKEY $MY_USERNAME@$MY_PUBIP_ADDR 'ssh '"${MY_USERNAME}@${this_vm}"' zypper se -i -s nginx' || test_die "${this_vm} does not have nginx installed"
   ssh -i $MYSSHKEY $MY_USERNAME@$MY_PUBIP_ADDR 'ssh '"${MY_USERNAME}@${this_vm}"' sudo systemctl status nginx.service' || test_die "${this_vm} does not have nginx server running"
   ssh -i $MYSSHKEY $MY_USERNAME@$MY_PUBIP_ADDR 'curl http://'"${this_vm}" || test_die "${this_vm} does not have http web page reachable"
+  ssh -i $MYSSHKEY $MY_USERNAME@$MY_PUBIP_ADDR 'curl http://'"${MY_FIP}" || test_die "${this_vm} does not have http web page reachable"
 
   test_step "[${this_vm}] diagnostic logs"
   ssh -i $MYSSHKEY $MY_USERNAME@$MY_PUBIP_ADDR 'ssh '"${MY_USERNAME}@${this_vm}"' cat /etc/os-release'

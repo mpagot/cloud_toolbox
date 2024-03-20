@@ -52,8 +52,11 @@ az network lb create \
     -g $MY_GROUP \
     -n $MY_LB \
     --sku Standard \
+    --vnet-name $MY_VNET \
+    --subnet $MY_SUBNET \
     --backend-pool-name $MY_BE_POOL \
-    --frontend-ip-name $MY_FIP
+    --frontend-ip-name $MY_FIP_NAME \
+    --private-ip-address $MY_FIP
 
 
 # All the 2 VM will be later assigned to it.
@@ -104,6 +107,25 @@ for NUM in $(seq $MY_NUM); do
 
   echo "--> az vm open-port -n $MYNAME-vm-0$NUM"
   az vm open-port -g $MY_GROUP --name $THIS_VM --port 80
+done
+
+echo "--> az vm create -n $MY_BASTION"
+az vm create \
+  -n $MY_BASTION \
+  -g $MY_GROUP \
+  -l $MY_REGION \
+  --size Standard_B1s \
+  --image $MY_OS \
+  --admin-username $MY_USERNAME \
+  --vnet-name $MY_VNET \
+  --subnet $MY_SUBNET \
+  --public-ip-address $MY_PUBIP \
+  --ssh-key-values "${MYSSHKEY}.pub"
+
+# Keep this loop separated from the other to hopefully
+# give cloud-init more time to run
+for NUM in $(seq $MY_NUM); do
+  THIS_VM="${MYNAME}-vm-0${NUM}"
 
   THIS_NIC_ID=$(az vm show -g $MY_GROUP -n $THIS_VM --query 'networkProfile.networkInterfaces[0].id' -o tsv)
   THIS_IP_CONFIG=$(az network nic show --id $THIS_NIC_ID --query 'ipConfigurations[0].name' -o tsv)
@@ -129,18 +151,6 @@ for NUM in $(seq $MY_NUM); do
     --nic-name $THIS_NIC
 done
 
-echo "--> az vm create -n $MY_BASTION"
-az vm create \
-  -n $MY_BASTION \
-  -g $MY_GROUP \
-  -l $MY_REGION \
-  --size Standard_B1s \
-  --image $MY_OS \
-  --admin-username $MY_USERNAME \
-  --vnet-name $MY_VNET \
-  --subnet $MY_SUBNET \
-  --public-ip-address $MY_PUBIP \
-  --ssh-key-values "${MYSSHKEY}.pub"
 
 # Health probe is using the port exposed by the cluster RA azure-lb
 # to understand if each of the VM in the cluster is OK
@@ -167,7 +177,7 @@ az network lb rule create \
     --lb-name $MY_LB \
     -n "${MYNAME}_lbrule" \
     --protocol Tcp \
-    --frontend-ip-name $MY_FIP --frontend-port 80 \
+    --frontend-ip-name $MY_FIP_NAME --frontend-port 80 \
     --backend-pool-name $MY_BE_POOL --backend-port 80 \
     --idle-timeout 30 \
     --enable-floating-ip 1 \
