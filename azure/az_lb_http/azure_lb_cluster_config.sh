@@ -10,7 +10,7 @@ for NUM in $(seq 2); do
   this_vm="${MYNAME}-vm-0${NUM}"
 
   echo "-------> this_vm:${this_vm}"
-  ssh -i $MYSSHKEY $MY_USERNAME@$MY_PUBIP_ADDR 'ssh -o StrictHostKeyChecking=accept-new '"${MY_USERNAME}@${this_vm}"' test'
+  ssh -i $MYSSHKEY $MY_USERNAME@$MY_PUBIP_ADDR 'ssh -o StrictHostKeyChecking=accept-new '"${MY_USERNAME}@${this_vm}"' whoami'
 
   echo "Check if the folder /home/${MY_USERNAME}/.ssh exist in the ${this_vm}"
   ssh -i $MYSSHKEY $MY_USERNAME@$MY_PUBIP_ADDR 'ssh '"${MY_USERNAME}@${this_vm}"' sudo [ -d "/home/'"${MY_USERNAME}"'/.ssh" ]' || test_die "Missing /home/${MY_USERNAME}/.ssh"

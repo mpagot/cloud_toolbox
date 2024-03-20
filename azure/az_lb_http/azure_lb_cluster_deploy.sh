@@ -70,7 +70,7 @@ az vm availability-set create \
 #   - VMs
 #   - for each of them open port 80
 #   - link their NIC/ipconfigs to the load balancer to be managed
-for NUM in $(seq 2); do
+for NUM in $(seq $MY_NUM); do
   THIS_VM="${MYNAME}-vm-0${NUM}"
 
   # Notice as the VM creation refer to an external cloud-init
@@ -92,6 +92,15 @@ for NUM in $(seq 2); do
     --custom-data cloud-init-web.txt \
     --ssh-key-values "${MYSSHKEY}.pub"
 
+  echo "--> wait cloud-init to complete on ${THIS_VM}"
+  az vm run-command create \
+  --run-command-name "awaitCloudInitIsDone" \
+  -g $MY_GROUP \
+  --vm-name $THIS_VM \
+  --async-execution "false" \
+  --run-as-user $MY_USERNAME \
+  --timeout-in-seconds 3600 \
+  --script "sudo cloud-init status --wait"
 
   echo "--> az vm open-port -n $MYNAME-vm-0$NUM"
   az vm open-port -g $MY_GROUP --name $THIS_VM --port 80
