@@ -1,20 +1,11 @@
-# Create in Azure:
-# 2 VM 
-# 1 public IP
-# 1 LB to dynamically assign the PublicIP to the 3 VM
-# each VM has a simple web server installed (by cloud-init script)
-# the VMs are part of a pacemaker cluster
-# the cluster has a azure-lb RA
-# the LB health probe is pointed to the port exposed by RA
-
 . ./utils.sh
-
-MY_PUBIP_ADDR="$(get_pub_ip)"
 
 test_step "deployment"
 az group list --query "[?name=='${MY_GROUP}'].name" -o tsv | wc -l | grep 1 || test_die "Resource group"
 az vm list -g "${MY_GROUP}" --query "[?name=='${MY_BASTION}'].name" -o tsv | wc -l | grep 1 || test_die "Bastion"
 az vm list -g "${MY_GROUP}" --query "[?name!='${MY_BASTION}'].name" -o tsv | wc -l | grep $MY_NUM || test_die "Nodes is not ${MY_NUM}"
+
+MY_PUBIP_ADDR="$(get_pub_ip)"
 
 for NUM in $(seq $MY_NUM); do
   this_vm="${MYNAME}-vm-0${NUM}"

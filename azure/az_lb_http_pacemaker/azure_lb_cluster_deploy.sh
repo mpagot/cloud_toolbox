@@ -1,11 +1,11 @@
 # Create in Azure:
-# 2 VM 
-# 1 public IP
-# 1 LB to dynamically assign the PublicIP to the 3 VM
-# each VM has a simple web server installed (by cloud-init script)
-# the VMs are part of a pacemaker cluster
-# the cluster has a azure-lb RA
-# the LB health probe is pointed to the port exposed by RA
+# - 2 VM as redundant nodes running an http server
+#   each VM has a simple web server installed (by cloud-init script)
+#   the 2 VMs are part of a pacemaker cluster
+# - 1 Static private IP for the frontend
+# - 1 LB to assign the front end IP
+# - the cluster has a azure-lb RA
+# - the LB health probe is pointed to the port exposed by RA
 
 . ./utils.sh
 
