@@ -66,3 +66,7 @@ test_die () {
   echo "DIE : $1"
   exit 1
 }
+
+ssh_bastion () {
+  ssh -i $MYSSHKEY $MY_USERNAME@$MY_PUBIP_ADDR "$*"
+}
