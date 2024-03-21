@@ -1,3 +1,7 @@
+#!/bin/sh
+
+# Check the deployment before to start testing and changing it
+
 . ./utils.sh
 
 test_step "deployment"
@@ -38,6 +42,7 @@ for NUM in $(seq $MY_NUM); do
   ssh_bastion 'ssh '"${MY_USERNAME}@${this_vm}"' ip a show eth0' | grep -E "inet .*192\.168\.1\.4${NUM}" || test_die "node${NUM} do not have private IP 192.168.1.4${NUM}"
   test_step "[${this_vm}] cluster"
   ssh_bastion 'ssh '"${MY_USERNAME}@${this_vm}"' sudo crm status' || test_die "node${NUM} fails calling crm status"
+  ssh_bastion 'ssh '"${MY_USERNAME}@${this_vm}"' sudo crm configure show' || test_die "node${NUM} fails calling crm configure "
 
   test_step "[${this_vm}] connectivity"
   for OTHER_NUM in $(seq $MY_NUM); do
@@ -61,13 +66,13 @@ for NUM in $(seq $MY_NUM); do
   test_step "[${this_vm}] webserver"
   ssh_bastion 'ssh '"${MY_USERNAME}@${this_vm}"' zypper se -i -s nginx' || test_die "${this_vm} does not have nginx installed"
   ssh_bastion 'ssh '"${MY_USERNAME}@${this_vm}"' sudo systemctl status nginx.service' || test_die "${this_vm} does not have nginx server running"
-  ssh_bastion 'curl http://'"${this_vm}" || test_die "${this_vm} does not have http web page reachable"
-  ssh_bastion 'curl http://'"${MY_FIP}" || test_die "${this_vm} does not have http web page reachable"
+  ssh_bastion 'curl -s http://'"${this_vm}" | grep ${this_vm} || test_die "${this_vm} does not have http web page reachable"
+  ssh_bastion 'curl -s http://'"${MY_FIP}" || test_die "${this_vm} does not have http web page reachable"
 
   test_step "[${this_vm}] diagnostic logs"
   ssh_bastion 'ssh '"${MY_USERNAME}@${this_vm}"' cat /etc/os-release'
   ssh_bastion 'ssh '"${MY_USERNAME}@${this_vm}"' uname -a'
   ssh_bastion 'ssh '"${MY_USERNAME}@${this_vm}"' zypper --version'
   ssh_bastion 'ssh '"${MY_USERNAME}@${this_vm}"' sudo cat /var/log/cloud-init.log | grep -v DEBUG | grep -E "Command|Exit"'
-  ssh_bastion 'ssh '"${MY_USERNAME}@${this_vm}"' sudo journalctl -b | grep -E "cloud-init\[.*(Failed|Warning)"'
+  ssh_bastion 'ssh '"${MY_USERNAME}@${this_vm}"' sudo journalctl -b | grep -E "cloud-init\[.*(Failed|Warning)"' || echo "No cloud-init errors in ${this_vm}"
 done

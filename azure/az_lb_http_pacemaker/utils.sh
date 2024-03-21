@@ -68,5 +68,10 @@ test_die () {
 }
 
 ssh_bastion () {
-  ssh -i $MYSSHKEY $MY_USERNAME@$MY_PUBIP_ADDR "$*"
+  if [ -z "${MY_PUBIP_ADDR}" ]
+  then
+    echo "MY_PUBIP_ADDR must be set before to call ssh_bastion()"
+  else
+    ssh -i $MYSSHKEY $MY_USERNAME@$MY_PUBIP_ADDR "$*"
+  fi
 }
