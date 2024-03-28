@@ -28,19 +28,19 @@ Pacemaker cluster for highly available web application on Microsoft Azure cloud.
 
 ### Web server
 
-Each of the two internal nodes has an Nginx web server installed. Only HTTP, only port 80.
+Each of the two internal nodes has an Nginx web server installed, listening only on port 80.
 Each of them only respond with a static page. Page content is the hostname.
 Web server is reachable from the bastion too, both on the static IP of each VM and on the LB frontend IP
 
 ```
 cloudadmin@vm-bastion:~> curl -s http://192.168.1.41
-I am mpagot-vm-01
+I am vm-01
 
 cloudadmin@vm-bastion:~> curl -s http://192.168.1.42
-I am mpagot-vm-02
+I am vm-02
 
 cloudadmin@vm-bastion:~> curl -s http://192.168.1.50
-I am mpagot-vm-01
+I am vm-01
 ```
 
 ### Pacemaker cluster
@@ -71,7 +71,7 @@ Full List of Resources:
     * rsc_ip_00 (ocf::heartbeat:IPaddr2):        Started vm-01
 ```
 
-No STONITH device. No RA to manage the webserver. 
+No STONITH device. No RA to manage the web server.
 
 ## Deployment Steps:
 
@@ -85,12 +85,12 @@ No STONITH device. No RA to manage the webserver.
 8. Configure a static private IP address for each VM within the defined range.
 9. Create a health probe for the load balancer.
 10. Create a load balancer rule with idle timeout and floating IP enabled.
-11. (Separate script) Configure Pacemaker cluster on the VMs.
+11. Configure Pacemaker cluster on the VMs.
 
 # Test sequence
 
-1. Test evaluate connectivity on the frontend IP by calling `curl` from the bastion.
+1. Test connectivity on the frontend IP by calling `curl` from the bastion.
 2. IPaddr2 resource is moved to `vm-02` using `crm resource move rsc_ip_00 vm-02`
-3. Some time is wait to allow the cluster to move the resource, and to allow that the LB health-probe realize that resource has been moved on `vm-02`
-4. Connectivity is evaluated again using curl. It allow to determine that the frontend IP is responding and that (from the HTTP response content) page is server from `vm-02`
+3. Wait the cluster to moves the resource to the other node, and to allow the LB health-probe to realize that the resource has been moved
+4. Connectivity is evaluated again using curl. It allows to determine that the frontend IP is responding and that (from the HTTP response content) page is served from `vm-02`
 
