@@ -1,3 +1,5 @@
+#!/bin/sh
+
 # Create in Azure:
 # - 2 VM as redundant nodes running an http server
 #   each VM has a simple web server installed (by cloud-init script)
