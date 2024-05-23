@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash -eu
 
 # Create in Azure:
 # - 2 VM as redundant nodes running an http server
@@ -11,14 +11,17 @@
 
 . ./utils.sh
 
+$AZ --version
+
+
 # Create a resource group to contain all the resources
 echo "--> az group create -g $MY_GROUP -l $MY_REGION"
-az group create -g $MY_GROUP -l $MY_REGION
+$AZ group create -g $MY_GROUP -l $MY_REGION
 
 
 # Create a VNET only needed later when creating the VM
 echo "--> az network vnet create"
-az network vnet create \
+$AZ network vnet create \
   -n $MY_VNET \
   -g $MY_GROUP \
   -l $MY_REGION \
@@ -29,15 +32,15 @@ az network vnet create \
 
 # Create a Network Security Group only needed later when creating the VM
 echo "--> az network nsg create"
-az network nsg create \
+$AZ network nsg create \
     --resource-group $MY_GROUP \
     --name $MY_NSG
 
 
-# Create the only one public IP of this deployment,
+# Create the only one public IP in this deployment,
 # it will be assigned to the 3rd VM (bastion role)
 echo "--> az network public-ip create"
-az network public-ip create \
+$AZ network public-ip create \
     --resource-group $MY_GROUP \
     --name $MY_PUBIP \
     --version IPv4 \
@@ -50,7 +53,7 @@ az network public-ip create \
 # to link back-end (2 VMs) and front-end (the Pub IP) resources
 # SKU Standard (and not Basic) is needed to get some Metrics
 echo "--> az network lb create"
-az network lb create \
+$AZ network lb create \
     -g $MY_GROUP \
     -n $MY_LB \
     --sku Standard \
@@ -64,7 +67,7 @@ az network lb create \
 # All the 2 VM will be later assigned to it.
 # The load balancer does not explicitly knows about it
 echo "--> az vm availability-set create"
-az vm availability-set create \
+$AZ vm availability-set create \
   -n $MY_AS \
   -l $MY_REGION \
   -g $MY_GROUP \
@@ -82,7 +85,7 @@ for NUM in $(seq $MY_NUM); do
   # configuration file that is in charge to install and setup
   # the nginx server.
   echo "--> az vm create -n ${THIS_VM}"
-  az vm create \
+  $AZ vm create \
     -n $THIS_VM \
     -g $MY_GROUP \
     -l $MY_REGION \
@@ -97,8 +100,9 @@ for NUM in $(seq $MY_NUM); do
     --custom-data cloud-init-web.txt \
     --ssh-key-values "${MYSSHKEY}.pub"
 
+
   echo "--> wait cloud-init to complete on ${THIS_VM}"
-  az vm run-command create \
+  $AZ vm run-command create \
   --run-command-name "awaitCloudInitIsDone" \
   -g $MY_GROUP \
   --vm-name $THIS_VM \
@@ -108,11 +112,11 @@ for NUM in $(seq $MY_NUM); do
   --script "sudo cloud-init status --wait"
 
   echo "--> az vm open-port -n $MYNAME-vm-0$NUM"
-  az vm open-port -g $MY_GROUP --name $THIS_VM --port 80
+  $AZ vm open-port -g $MY_GROUP --name $THIS_VM --port 80
 done
 
 echo "--> az vm create -n $MY_BASTION"
-az vm create \
+$AZ vm create \
   -n $MY_BASTION \
   -g $MY_GROUP \
   -l $MY_REGION \
@@ -137,7 +141,7 @@ for NUM in $(seq $MY_NUM); do
 
   # Change the IpConfig to use a static IP: https://documentation.suse.com/sle-ha/15-SP5/html/SLE-HA-all/article-installation.html#vl-ha-inst-quick-req-other
   echo "--> az network nic ip-config update"
-  az network nic ip-config update \
+  $AZ network nic ip-config update \
     --name $THIS_IP_CONFIG \
     --resource-group $MY_GROUP \
     --nic-name $THIS_NIC \
@@ -145,7 +149,7 @@ for NUM in $(seq $MY_NUM); do
 
   # Add the IpConfig to the LB pool
   echo "--> az network nic ip-config address-pool add"
-  az network nic ip-config address-pool add \
+  $AZ network nic ip-config address-pool add \
     -g $MY_GROUP \
     --lb-name $MY_LB \
     --address-pool $MY_BE_POOL \
@@ -159,7 +163,7 @@ done
 # Is probably eventually the cluster itself that
 # cares to monitor the below service (port 80)
 echo "--> az network lb probe create"
-az network lb probe create \
+$AZ network lb probe create \
     --resource-group $MY_GROUP \
     --lb-name $MY_LB \
     --name $MY_HPROBE \
@@ -174,7 +178,7 @@ az network lb probe create \
 #  - idle_timeout_in_minutes        = 30
 #  - enable_floating_ip             = "true"
 echo "--> az network lb rule create"
-az network lb rule create \
+$AZ network lb rule create \
     -g $MY_GROUP \
     --lb-name $MY_LB \
     -n "${MYNAME}_lbrule" \

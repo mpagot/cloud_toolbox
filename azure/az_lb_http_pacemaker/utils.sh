@@ -24,6 +24,7 @@ then
 fi
 
 MY_USERNAME=cloudadmin
+AZ="${AZ:-"az"}"
 MY_NUM="${MY_NUM:-"2"}"
 MY_REGION="${MY_REGION:-"northeurope"}"
 MY_OS="${MY_OS:-"SUSE:sles-sap-15-sp5:gen2:latest"}"

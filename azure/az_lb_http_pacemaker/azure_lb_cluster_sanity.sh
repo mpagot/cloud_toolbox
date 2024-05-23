@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash -eu
 
 # Check the deployment before to start testing and changing it
 

@@ -1,3 +1,5 @@
+#!/bin/bash -eu
+
 # Prepare all the ssh connections within the 2 internal VMs
 # create the cluster
 . ./utils.sh

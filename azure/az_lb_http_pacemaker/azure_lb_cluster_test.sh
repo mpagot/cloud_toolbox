@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash -eu
 
 # 1. get the webpage using the LB floating IP. It should be from VM1 at the test beginning
 # 2. turn off the VM1
@@ -54,7 +54,6 @@ ssh_node1 'ip a show eth0' | grep ${MY_FIP} || test_die "VirtualIP ${MY_FIP} sho
 ssh_node2 'ip a show eth0'
 test_web "${MYNAME}-vm-01"
 
-
 test_step "Move the IpAddr2 resource to VM2"
 ssh_node1 'sudo crm resource move '"${MY_MOVE_RES} ${MYNAME}-vm-02" || test_die "Error in resource move"
 sleep 30
@@ -103,3 +102,13 @@ ssh_node1 'sudo crm status'
 test_step "Check again later"
 sleep 30
 test_web "${MYNAME}-vm-01"
+
+node1
+1. maintenance
+2. zypper patch
+3. reboot
+
+node2
+1. maintenance
+2. zypper patch
+3. reboot
