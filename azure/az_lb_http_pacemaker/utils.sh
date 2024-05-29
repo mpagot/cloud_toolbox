@@ -48,7 +48,10 @@ MY_BASTION="${MYNAME}-vm-bastion"
 print_howto () {
   MY_PUBIP_ADDR="$(get_pub_ip)"
   echo "------------------------------------------------------"
-  echo "|   Bastion ssh -i ${MYSSHKEY} ${MY_USERNAME}@${MY_PUBIP_ADDR}"
+  echo "|   Bastion 'ssh -i ${MYSSHKEY} ${MY_USERNAME}@${MY_PUBIP_ADDR}"''
+  echo "|"
+  echo "|   Internal VM 'ssh ${MY_USERNAME}@${MYNAME}-vm-01 -oProxyCommand=\"ssh ${MY_USERNAME}@${MY_PUBIP_ADDR} -i ${MYSSHKEY} -W %h:%p\" -i ${MYSSHKEY}"
+  echo "|"
   echo "|   Destroy all with 'az group delete --name $MY_GROUP -y'"
   echo "------------------------------------------------------"
 }
@@ -75,4 +78,43 @@ ssh_bastion () {
   else
     ssh -i $MYSSHKEY $MY_USERNAME@$MY_PUBIP_ADDR "$*"
   fi
+}
+
+ssh_proxy () {
+  if [ -z "${MY_PUBIP_ADDR}" ]; then
+    echo "MY_PUBIP_ADDR must be set before to call ssh_proxy()"
+    return
+  fi
+  if [ -z "${MY_USERNAME}" ]; then
+    echo "MY_USERNAME must be set before to call ssh_proxy()"
+    return
+  fi
+  if [ -z "${MYSSHKEY}" ]; then
+    echo "MYSSHKEY must be set before to call ssh_proxy()"
+    return
+  fi
+
+  vm_name=$1
+  shift 1
+
+  ssh "${MY_USERNAME}@$vm_name" \
+      -oProxyCommand="ssh ${MY_USERNAME}@${MY_PUBIP_ADDR} -i ${MYSSHKEY} -W %h:%p" \
+      -i $MYSSHKEY \
+      "$*"
+}
+
+scp_proxy () {
+  if [ -z "${MY_PUBIP_ADDR}" ]; then
+    echo "MY_PUBIP_ADDR must be set before to call scp_proxy()"
+    return
+  fi
+  if [ -z "${MY_USERNAME}" ]; then
+    echo "MY_USERNAME must be set before to call scp_proxy()"
+    return
+  fi
+  if [ -z "${MYSSHKEY}" ]; then
+    echo "MYSSHKEY must be set before to call scp_proxy()"
+    return
+  fi
+  scp -oProxyCommand="ssh ${MY_USERNAME}@${MY_PUBIP_ADDR} -i ${MYSSHKEY} -W %h:%p" -i "${MYSSHKEY}" $*
 }

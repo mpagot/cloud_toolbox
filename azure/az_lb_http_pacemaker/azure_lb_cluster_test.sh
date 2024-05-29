@@ -37,11 +37,11 @@ wait_for_takeover () {
 }
 
 ssh_node1 () {
-  ssh_bastion 'ssh '"${MY_USERNAME}@${MYNAME}-vm-01 $*"
+  ssh_proxy "${MYNAME}-vm-01" $*
 }
 
 ssh_node2 () {
-  ssh_bastion 'ssh '"${MY_USERNAME}@${MYNAME}-vm-02 $*"
+  ssh_proxy "${MYNAME}-vm-02" $*
 }
 
 
