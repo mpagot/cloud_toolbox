@@ -102,13 +102,3 @@ ssh_node1 'sudo crm status'
 test_step "Check again later"
 sleep 30
 test_web "${MYNAME}-vm-01"
-
-node1
-1. maintenance
-2. zypper patch
-3. reboot
-
-node2
-1. maintenance
-2. zypper patch
-3. reboot
