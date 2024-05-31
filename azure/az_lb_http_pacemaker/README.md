@@ -88,6 +88,15 @@ No STONITH device. No RA to manage the web server.
 10. Create a load balancer rule with idle timeout and floating IP enabled.
 11. Configure Pacemaker cluster on the VMs.
 
+This can be obtained by executing these scripts in this specific order:
+
+1. *azure_lb_cluster_deploy.sh*: create all the needed resources in Azure
+2. *azure_lb_cluster_deploy_sanity.sh*: briefly validate what we get in the deployment
+3. *azure_lb_cluster_config_ssh.sh*: configure, create and exchange some needed ssh keys on top of what directly done during the deployment
+4. *azure_lb_cluster_config_cluster.sh*: create and configure the Pacemaker cluster
+5. *azure_lb_cluster_sanity.sh*: validate the deployment and the cluster
+6. *azure_lb_cluster_test.sh*: perform the test by moving some resources from one node to the other
+
 # Test sequence
 
 1. Test connectivity on the frontend IP by calling `curl` from the bastion.
