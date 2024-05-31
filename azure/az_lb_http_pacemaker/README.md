@@ -1,25 +1,26 @@
 # SUT description
-Pacemaker cluster for highly available web application on Microsoft Azure cloud. 
+Pacemaker cluster for highly available web application on Microsoft Azure cloud.
 
 ## Azure resources
 ### Compute Resources:
 
 - **Virtual Machines (VMs):**
-    - Two VMs running a simple web server (Nginx deployed with `cloud-init` script in file `cloud-init-web.txt`).
-    - These 2 VMs are deployed in the same availability set.
-    - These 2 VMs are configured as a Pacemaker cluster (established in a separate script)
-    - A third VM with a public IP for bastion access (management).
+Two VMs:
+  - running a simple web server (Nginx deployed with `cloud-init` script in file `cloud-init-web.txt`).
+  - in the same availability set.
+  - configured as a Pacemaker cluster
+A third VM with a public IP for bastion access (management).
 
 ### Networking:
 
 - 1 **Virtual Network (VNet)** with 1 **Subnet** (IP range 192.168.1.0/24)
 - **Network Security Group (NSG):** A firewall to control inbound and outbound traffic (likely not configured in this script). Only two internal VM belong to it. No rules associated to it.
-- **Static Private IPs:** Each web server VM gets a static private IP for internal communication.
+- **Static Private IPs:** Each web server VM gets a static private IP for internal communication. These private IP are also in the backend pool of the load balancer.
 - **Public IP:** A single public IP assigned to the bastion VM for remote access. **Allocation Method:** Static
 
 ### Azure Load Balancer:
 
-- **Load Balancer (LB):** routes incoming traffic on port 80 across the available web server VMs. It routes the traffic to the node where the Pacemaker `azure-lb` cluster resource is.
+- **Load Balancer (LB):** routes incoming traffic on port 80 across one of the two the available web server VMs. It routes the traffic to the node where the Pacemaker `azure-lb` cluster resource is.
 - **Frontend IP:** fixed IP on the internal subnet (192.168.1.50). Same IP is also used later when configuring the `IPAddr2` cluster resource.
 - **Backend Pool:** A pool containing the two web server VMs as backend resources for the load balancer.
 - **Health Probe:** Monitors the health of the VMs by checking a specific port `62500` (port exposed by the Pacemaker cluster agent) on each VM.
@@ -29,8 +30,8 @@ Pacemaker cluster for highly available web application on Microsoft Azure cloud.
 ### Web server
 
 Each of the two internal nodes has an Nginx web server installed, listening only on port 80.
-Each of them only respond with a static page. Page content is the hostname.
-Web server is reachable from the bastion too, both on the static IP of each VM and on the LB frontend IP
+Each of them only respond with a static page. Page content is just the VM hostname.
+Web server is reachable from the bastion too, both on the static IP of each VM and on the LB frontend virtual IP
 
 ```
 cloudadmin@vm-bastion:~> curl -s http://192.168.1.41
