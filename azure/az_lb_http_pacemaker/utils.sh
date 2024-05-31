@@ -100,7 +100,7 @@ ssh_proxy () {
   ssh "${MY_USERNAME}@$vm_name" \
       -oProxyCommand="ssh ${MY_USERNAME}@${MY_PUBIP_ADDR} -i ${MYSSHKEY} -W %h:%p" \
       -i $MYSSHKEY \
-      "$*"
+      $*
 }
 
 scp_proxy () {
