@@ -95,7 +95,7 @@ This can be obtained by executing these scripts in this specific order:
 3. *azure_lb_cluster_config_ssh.sh*: configure, create and exchange some needed ssh keys on top of what directly done during the deployment
 4. *azure_lb_cluster_config_cluster.sh*: create and configure the Pacemaker cluster
 5. *azure_lb_cluster_sanity.sh*: validate the deployment and the cluster
-6. *azure_lb_cluster_test.sh*: perform the test by moving some resources from one node to the other
+6. *azure_lb_cluster_test_01_crm_mv.sh*: perform the test by moving some resources from one node to the other
 
 # Test sequence
 

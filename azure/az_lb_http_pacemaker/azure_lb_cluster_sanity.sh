@@ -43,31 +43,21 @@ for NUM in $(seq $MY_NUM); do
   test_step "[${this_vm}] cluster"
   ssh_proxy $this_vm sudo crm status || test_die "node${NUM} fails calling crm status"
   ssh_proxy $this_vm sudo crm configure show || test_die "node${NUM} fails calling crm configure "
-
-  test_step "[${this_vm}] connectivity"
-  for OTHER_NUM in $(seq $MY_NUM); do
-    if [ "$NUM" -eq "$OTHER_NUM" ]; then
-        continue
-    fi
-    other_vm="${MYNAME}-vm-0${OTHER_NUM}"
-    test_step "[${this_vm}]-->[${other_vm}] ping IP"
-    ssh_proxy $this_vm "ping -c 10 192.168.1.4${OTHER_NUM}" || test_die "${this_vm} is not able to ping ${other_vm} at 192.168.1.4${OTHER_NUM}"
-    test_step "[${this_vm}]-->[${other_vm}] ping name"
-    ssh_proxy $this_vm "ping -c 10 ${other_vm}" || test_die "${this_vm} is not able to ping ${other_vm} by name"
-    test_step "[${this_vm}]-->[${other_vm}] ssh"
-    ssh_proxy $this_vm "ssh ${MY_USERNAME}@${other_vm} whoami" || test_die "${this_vm} is not able to ssh ${other_vm}"
-    #test_step "[${this_vm}]-->[${other_vm}] sudo ssh"
-    #ssh_proxy $this_vm "sudo ssh ${MY_USERNAME}@${other_vm} whoami" || test_die "${this_vm} is not able to sudo ssh ${other_vm}"
-  done
+  occurrence=$(ssh_proxy $this_vm sudo crm configure show | grep -c primitive)
+  [[ $occurrence -eq 3 ]] || test_die "Cluster on node${NUM} has ${occurrence} primitives instead of expected 3"
+  ssh_proxy $this_vm '[ -f /usr/lib/ocf/resource.d/heartbeat/nginx ]'
+  ssh_proxy $this_vm rpm -qf /usr/lib/ocf/resource.d/heartbeat/nginx
 
   test_step "[${this_vm}] load balancer"
   ssh_proxy $this_vm 'curl -H "Metadata:true" --noproxy "*" "http://169.254.169.254:80/metadata/loadbalancer?api-version=2020-10-01" | python3 -m json.tool'
 
   test_step "[${this_vm}] webserver"
   ssh_proxy $this_vm zypper se -i -s nginx || test_die "${this_vm} does not have nginx installed"
-  ssh_proxy $this_vm sudo systemctl status nginx.service || test_die "${this_vm} does not have nginx server running"
-  ssh_bastion 'curl -s http://'"${this_vm}" | grep ${this_vm} || test_die "${this_vm} does not have http web page reachable"
-  ssh_bastion 'curl -s http://'"${MY_FIP}" || test_die "${this_vm} does not have http web page reachable"
+  set +e
+  ssh_proxy $this_vm sudo systemctl status nginx.service
+  rc=$?; [[ $rc -ne 0 ]] || test_die "rc:$? ${this_vm} has nginx server running and should not"
+  set -e
+  ssh_bastion "curl -s http://${MY_FIP}" || test_die "${this_vm} does not have http web page reachable at http://${MY_FIP}"
 
   test_step "[${this_vm}] diagnostic logs"
   ssh_proxy $this_vm cat /etc/os-release
@@ -83,3 +73,5 @@ for NUM in $(seq $MY_NUM); do
   test_step "[${this_vm}] diagnostic logs: journalctl"
   ssh_proxy $this_vm sudo journalctl -b | grep -E "cloud-init\[.*(Failed|Warning)" || echo "No cloud-init errors in ${this_vm}"
 done
+
+test_connectivity
