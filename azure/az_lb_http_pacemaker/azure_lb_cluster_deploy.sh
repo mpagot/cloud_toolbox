@@ -189,4 +189,27 @@ $AZ network lb rule create \
     --enable-floating-ip 1 \
     --probe-name $MY_HPROBE
 
+if [ -n "${AZ_LB_BOOTLOG}" ]; then
+  echo "--> create all components needed to get boot log"
+  $AZ storage account create \
+      -g $MY_GROUP \
+      --name $MY_STORAGE_ACCOUNT \
+      --location $MY_REGION
+      #                    --sku Standard_LRS
+
+  endpoint="$($AZ storage account show \
+      -g $MY_GROUP \
+      --name $MY_STORAGE_ACCOUNT \
+      --query="primaryEndpoints.blob" \
+      -o tsv)"
+
+  for NUM in $(seq $MY_NUM); do
+    THIS_VM="${MYNAME}-vm-0${NUM}"
+    $AZ vm boot-diagnostics enable \
+      --name $THIS_VM \
+      --resource-group $MY_GROUP \
+      --storage $endpoint
+  done
+fi
+
 print_howto

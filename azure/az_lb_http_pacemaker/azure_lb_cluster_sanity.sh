@@ -40,6 +40,7 @@ for NUM in $(seq $MY_NUM); do
   ssh_proxy $this_vm sudo cat /etc/passwd | grep -c -E "root|${MY_USERNAME}|hacluster" | grep 3 || test_die "node${NUM} has root, hacluster and ${MY_USERNAME}"
   test_step "[${this_vm}] private ip"
   ssh_proxy $this_vm ip a show eth0 | grep -E "inet .*192\.168\.1\.4${NUM}" || test_die "node${NUM} do not have private IP 192.168.1.4${NUM}"
+
   test_step "[${this_vm}] cluster"
   ssh_proxy $this_vm sudo crm status || test_die "node${NUM} fails calling crm status"
   ssh_proxy $this_vm sudo crm configure show || test_die "node${NUM} fails calling crm configure "
@@ -72,6 +73,11 @@ for NUM in $(seq $MY_NUM); do
 
   test_step "[${this_vm}] diagnostic logs: journalctl"
   ssh_proxy $this_vm sudo journalctl -b | grep -E "cloud-init\[.*(Failed|Warning)" || echo "No cloud-init errors in ${this_vm}"
+
+  test_step "[${this_vm}] cloud-netconfig"
+  ssh_proxy $this_vm 'zypper se -s -i cloud-netconfig' || test_die "cloud-netconfig not installed in ${this_vm}"
+  ssh_proxy $this_vm 'sudo grep CLOUD_NETCONFIG_MANAGE /etc/default/cloud-netconfig' | grep "yes" || test_die "CLOUD_NETCONFIG_MANAGE is not yes in ${this_vm}"
+  ssh_proxy $this_vm 'sudo journalctl -b |grep -E "cloud-netconfig\["'
 done
 
 test_connectivity

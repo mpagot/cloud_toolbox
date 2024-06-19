@@ -1,24 +1,23 @@
 # configurable parameters
-if [ -z "${MYNAME}" ]
-then
+if [[ ! -v MYNAME ]]; then
   echo "MYNAME must be set to derive all the other settings"
   exit 1
-fi
-
-if [ -z "${MYSSHKEY}" ]
-then
-  echo "MYSSHKEY must be set to derive all the other settings"
+elif [[ -z "${MYNAME}" ]]; then
+  echo "MYNAME must have an non empty value to derive all the other settings"
   exit 1
 fi
 
-if [ ! -f "${MYSSHKEY}" ]
-then
+# configurable parameters
+if [[ ! -v MYSSHKEY ]]; then
+  echo "MYSSHKEY must be set"
+  exit 1
+elif [[ -z "${MYSSHKEY}" ]]; then
+  echo "MYSSHKEY must have an non empty value"
+  exit 1
+elif [[ ! -f "${MYSSHKEY}" ]]; then
   echo "provided ssh key file MYSSHKEY:${MYSSHKEY} couldn't be found"
   exit 1
-fi
-
-if [ ! -f "${MYSSHKEY}.pub" ]
-then
+elif [[ ! -f "${MYSSHKEY}.pub" ]]; then
   echo "Public key associated to the provided ssh key file MYSSHKEY:${MYSSHKEY} couldn't be found"
   exit 1
 fi
@@ -44,6 +43,9 @@ MY_HPROBE_PORT="62500"
 MY_FIP_NAME="${MYNAME}_frontend_ip"
 MY_FIP="${MY_PRIV_IP_RANGE}.50"
 MY_BASTION="${MYNAME}-vm-bastion"
+# Storage account name must be between 3 and 24 characters in length
+# and use numbers and lower-case letters only.
+[[ -n "${AZ_LB_BOOTLOG}" ]] && MY_STORAGE_ACCOUNT="${MYNAME//_/}storageaccount"
 
 print_howto () {
   MY_PUBIP_ADDR="$(get_pub_ip)"
