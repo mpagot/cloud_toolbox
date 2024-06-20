@@ -22,7 +22,9 @@ MY_PUBIP="${MYNAME}_pubip"
 MY_VM="${MYNAME}-vm"
 # Storage account name must be between 3 and 24 characters in length
 # and use numbers and lower-case letters only.
-[[ -n "${AZ_1V_BOOTLOG}" ]] && MY_STORAGE_ACCOUNT="${MYNAME//_/}storageaccount"
+if [[ -v AZ_1V_BOOTLOG ]]; then
+  [[ -n "${AZ_1V_BOOTLOG}" ]] && MY_STORAGE_ACCOUNT="${MYNAME//_/}storageaccount"
+fi
 
 print_howto () {
   MY_PUBIP_ADDR="$(get_pub_ip)"
@@ -81,7 +83,7 @@ test_connectivity () {
   done
 }
 
-check_key_env () {
+check_sshkey_env () {
   if [[ ! -v MYSSHKEY ]]; then
     echo "MYSSHKEY must be set"
     exit 1
@@ -96,3 +98,4 @@ check_key_env () {
     exit 1
   fi
 }
+
