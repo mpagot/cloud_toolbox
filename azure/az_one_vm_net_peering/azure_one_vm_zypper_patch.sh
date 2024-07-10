@@ -14,6 +14,7 @@ test_step "Check the repos"
 ssh_vm "sudo zypper lr"
 
 test_step "Zypper patch"
+set +e
 ssh_vm "sudo ${PATCH_CMD}"
 last_zy_result=$?
 echo "Zypper exit with $last_zy_result"
@@ -37,3 +38,4 @@ echo "Zypper exit with $last_zy_result"
 ssh_vm sudo zypper patch -D -y
 last_zy_result=$?
 echo "Zypper exit with $last_zy_result"
+set -e
