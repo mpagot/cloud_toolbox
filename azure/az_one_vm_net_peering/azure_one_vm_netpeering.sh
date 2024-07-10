@@ -28,8 +28,10 @@ echo "--> az group show -g $MY_GROUP"
 $AZ group show -g $MY_GROUP
 $AZ group show -g $AZ_NP_RG
 
+set +e
 count=$($AZ network vnet peering list -g $AZ_NP_RG --vnet-name $AZ_NP_VNET --output tsv --query "[].name" | grep -c $MYNAME)
 echo "count:$count"
+set -e
 
 $AZ network vnet peering create \
   --name "${MY_VNET}-${AZ_NP_VNET}" \

@@ -46,7 +46,7 @@ $AZ vm create \
   --ssh-key-values "${MYSSHKEY}.pub"
 #  --subnet $MY_SUBNET \
 
-if [ -n "${AZ_LB_BOOTLOG}" ]; then
+if [[ -n "${AZ_V1_BOOTLOG}" ]]; then
   echo "--> create all components needed to get boot log"
   $AZ storage account create \
       -g $MY_GROUP \
