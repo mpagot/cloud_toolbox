@@ -25,7 +25,7 @@ export MYSSHKEY=<SOMEFOLDER/id_rsa>
 
 ## Deployment
 
-The fisrt script to be executed and that takes care to create
+The first script to be executed and that takes care to create
 the deployment in azure is `azure_one_vm_deploy.sh`.
 
 It is mostly implemented as a list of call to various `az` commands.
@@ -40,7 +40,7 @@ and that perform some basic validations of the deployment.
 
 ### Additional repository
 
-There are some optional step that allow to connect the deployment
+There are some optional steps that allow to connect the deployment
 to a private zypper proxy and eventually add some custom repo to zypper.
 
 This optional step also needs some additional configurations.
@@ -68,7 +68,7 @@ At this point it is also possible to add some extra repository.
 ```
 ./azure_one_vm_config_ssh.sh
 
-AZ_NP_REPO="http://<THE_PROXY_HOSTNAME>/<EXTRA_REPO_UI>"   ./azure_one_vm_config_repos.sh
+AZ_NP_REPO="http://<THE_PROXY_HOSTNAME>/<EXTRA_REPO_UI>" ./azure_one_vm_config_repos.sh
 ```
 
 ## Update the system
