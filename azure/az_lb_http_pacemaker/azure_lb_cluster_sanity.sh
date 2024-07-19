@@ -20,6 +20,8 @@ for NUM in $(seq $MY_NUM); do
   ssh_proxy $this_vm 'ls -lai ~/.ssh' | grep -v '.pub' | grep -c 'id_rsa' | grep 1 || test_die "${MY_USERNAME} on node${NUM} has one private key needed to talk to the other node"
   test_step "[${this_vm}] authorized_keys"
   # disabled as it does not pass on vm2
+  occurrence=ssh_proxy $this_vm 'cat ~/.ssh/authorized_keys | wc -l'
+  [[ $occurrence -eq 3 ]] || test_die "${MY_USERNAME} on node${NUM} should have 3 instead of ${occurrence} allowed keys in total, one is for the bastion"
   ssh_proxy $this_vm 'cat ~/.ssh/authorized_keys' | wc -l | grep 3 || test_die "${MY_USERNAME} on node${NUM} has 3 allowed keys in total, one is for the bastion"
   ssh_proxy $this_vm 'cat ~/.ssh/authorized_keys' | grep 'Temp internal cluster key for' | wc -l | grep 2 || test_die "${MY_USERNAME} on node${NUM} has 2 allowed keys for the inter-nodes communication"
 

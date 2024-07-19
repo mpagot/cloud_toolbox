@@ -73,6 +73,20 @@ $AZ vm availability-set create \
   -g $MY_GROUP \
   --platform-fault-domain-count 2
 
+# Create Bastion at first so if something goes
+# wrong we have a point to look inside
+echo "--> az vm create -n $MY_BASTION"
+$AZ vm create \
+  -n $MY_BASTION \
+  -g $MY_GROUP \
+  -l $MY_REGION \
+  --size Standard_B1s \
+  --image $MY_OS \
+  --admin-username $MY_USERNAME \
+  --vnet-name $MY_VNET \
+  --subnet $MY_SUBNET \
+  --public-ip-address $MY_PUBIP \
+  --ssh-key-values "${MYSSHKEY}.pub"
 
 # Create 2:
 #   - VMs
@@ -100,33 +114,42 @@ for NUM in $(seq $MY_NUM); do
     --custom-data cloud-init-web.txt \
     --ssh-key-values "${MYSSHKEY}.pub"
 
+  echo "--> check if run-command works for ${THIS_VM}"
+  # Try to execute a very brief command like `exit 0`
+  # This test is here as run-command does not terminate
+  # even with internal `cloud-init status --wait` is over
+  timeout $(( $AZ_CLOUTINIT_TIMEOUT + 30 )) $AZ vm run-command create \
+  --run-command-name "testRuncommand" \
+  -g $MY_GROUP \
+  --vm-name $THIS_VM \
+  --async-execution "false" \
+  --run-as-user $MY_USERNAME \
+  --timeout-in-seconds $AZ_CLOUTINIT_TIMEOUT \
+  --script "exit 0"
+  echo "Exit code for run-command rc:$?"
 
-  echo "--> wait cloud-init to complete on ${THIS_VM}"
-  $AZ vm run-command create \
+  echo "--> wait cloud-init to complete on ${THIS_VM} with timeout ${AZ_CLOUTINIT_TIMEOUT}"
+  set +e
+  timeout $(( $AZ_CLOUTINIT_TIMEOUT + 30 )) $AZ vm run-command create \
   --run-command-name "awaitCloudInitIsDone" \
   -g $MY_GROUP \
   --vm-name $THIS_VM \
   --async-execution "false" \
   --run-as-user $MY_USERNAME \
-  --timeout-in-seconds 3600 \
+  --timeout-in-seconds $AZ_CLOUTINIT_TIMEOUT \
   --script "sudo cloud-init status --wait"
+
+  WAIT_CLOUD_INIT_RC=$?
+
+  set -e
+  echo "Exit code for cloud-init status rc:$WAIT_CLOUD_INIT_RC"
+  [[ $WAIT_CLOUD_INIT_RC -eq 0 ]] || test_die "cloud-init status --wait error"
 
   echo "--> az vm open-port -n $MYNAME-vm-0$NUM"
   $AZ vm open-port -g $MY_GROUP --name $THIS_VM --port 80
 done
 
-echo "--> az vm create -n $MY_BASTION"
-$AZ vm create \
-  -n $MY_BASTION \
-  -g $MY_GROUP \
-  -l $MY_REGION \
-  --size Standard_B1s \
-  --image $MY_OS \
-  --admin-username $MY_USERNAME \
-  --vnet-name $MY_VNET \
-  --subnet $MY_SUBNET \
-  --public-ip-address $MY_PUBIP \
-  --ssh-key-values "${MYSSHKEY}.pub"
+
 
 # Keep this loop separated from the other to hopefully
 # give cloud-init more time to run
@@ -189,7 +212,7 @@ $AZ network lb rule create \
     --enable-floating-ip 1 \
     --probe-name $MY_HPROBE
 
-if [ -n "${AZ_LB_BOOTLOG}" ]; then
+if [[ -n "${AZ_V1_BOOTLOG}" ]]; then
   echo "--> create all components needed to get boot log"
   $AZ storage account create \
       -g $MY_GROUP \

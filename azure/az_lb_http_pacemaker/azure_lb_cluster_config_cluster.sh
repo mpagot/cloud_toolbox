@@ -39,7 +39,7 @@ ssh_proxy "${MYNAME}-vm-01" \
 
 # Create the resource to monitor the web server
 ssh_proxy "${MYNAME}-vm-01" \
-    sudo crm configure primitive rsc_web_00 \
+    sudo crm configure primitive $MY_MOVE_RES \
     ocf:heartbeat:nginx \
     configfile=/etc/nginx/nginx.conf \
     op start timeout="40s" interval="0" \
@@ -71,6 +71,6 @@ ssh_proxy "${MYNAME}-vm-01" \
 ssh_proxy "${MYNAME}-vm-01" \
     sudo crm configure group \
     rsc_grp_00 \
-    rsc_alb_00 rsc_ip_00 rsc_web_00 || test_die "Fails in create group"
+    rsc_alb_00 rsc_ip_00 $MY_MOVE_RES || test_die "Fails in create group"
 
 maintenance "false"

@@ -15,7 +15,7 @@ A third VM with a public IP for bastion access (management).
 
 - 1 **Virtual Network (VNet)** with 1 **Subnet** (IP range 192.168.1.0/24)
 - **Network Security Group (NSG):** A firewall to control inbound and outbound traffic (likely not configured in this script). Only two internal VM belong to it. No rules associated to it.
-- **Static Private IPs:** Each web server VM gets a static private IP for internal communication. These private IP are also in the backend pool of the load balancer.
+- **Static Private IPs:** Each web server VM gets a static private IP for internal communication. These private IPs are also in the backend pool of the load balancer.
 - **Public IP:** A single public IP assigned to the bastion VM for remote access. **Allocation Method:** Static
 
 ### Azure Load Balancer:
@@ -29,7 +29,7 @@ A third VM with a public IP for bastion access (management).
 
 ### Web server
 
-Each of the two internal nodes has an Nginx web server installed, listening only on port 80.
+Each of the two internal nodes has a Nginx web server installed, listening only on port 80.
 Each of them only respond with a static page. Page content is just the VM hostname.
 Web server is reachable from the bastion too, both on the static IP of each VM and on the LB frontend virtual IP
 
@@ -102,5 +102,5 @@ This can be obtained by executing these scripts in this specific order:
 1. Test connectivity on the frontend IP by calling `curl` from the bastion.
 2. IPaddr2 resource is moved to `vm-02` using `crm resource move rsc_ip_00 vm-02`
 3. Wait the cluster to moves the resource to the other node, and to allow the LB health-probe to realize that the resource has been moved
-4. Connectivity is evaluated again using curl. It allows to determine that the frontend IP is responding and that (from the HTTP response content) page is served from `vm-02`
+4. Connectivity is evaluated again using curl. It allows determining that the frontend IP is responding and that (from the HTTP response content) page is served from `vm-02`
 
