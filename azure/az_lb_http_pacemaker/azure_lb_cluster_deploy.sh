@@ -212,7 +212,7 @@ $AZ network lb rule create \
     --enable-floating-ip 1 \
     --probe-name $MY_HPROBE
 
-if [[ -n "${AZ_V1_BOOTLOG}" ]]; then
+if [[ -n "${AZ_BOOTLOG}" ]]; then
   echo "--> create all components needed to get boot log"
   $AZ storage account create \
       -g $MY_GROUP \

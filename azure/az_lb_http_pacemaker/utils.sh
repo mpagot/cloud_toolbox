@@ -42,12 +42,14 @@ MY_HPROBE_PORT="62500"
 MY_FIP_NAME="${MYNAME}_frontend_ip"
 MY_FIP="${MY_PRIV_IP_RANGE}.50"
 MY_BASTION="${MYNAME}-vm-bastion"
+MY_MOVE_RES="rsc_web_00"
+
 
 # Storage account name must be between 3 and 24 characters in length
 # and use numbers and lower-case letters only.
-AZ_1V_BOOTLOG="${AZ_1V_BOOTLOG:-"0"}"
-if [[ -v AZ_1V_BOOTLOG ]]; then
-  [[ -n "${AZ_1V_BOOTLOG}" ]] && MY_STORAGE_ACCOUNT="${MYNAME//_/}storageaccount"
+AZ_BOOTLOG="${AZ_BOOTLOG:-"0"}"
+if [[ -v AZ_BOOTLOG ]]; then
+  [[ -n "${AZ_BOOTLOG}" ]] && MY_STORAGE_ACCOUNT="${MYNAME//_/}storageaccount"
 fi
 AZ_CLOUTINIT_TIMEOUT="${AZ_CLOUTINIT_TIMEOUT:-600}"
 

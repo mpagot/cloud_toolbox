@@ -7,7 +7,6 @@
 . ./utils.sh
 
 MY_PUBIP_ADDR="$(get_pub_ip)"
-MY_MOVE_RES="rsc_web_00"
 
 test_step "Check cluster preconditions"
 test_connectivity
