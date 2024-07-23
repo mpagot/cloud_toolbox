@@ -44,7 +44,7 @@ $AZ network public-ip create \
     --resource-group $MY_GROUP \
     --name $MY_PUBIP \
     --version IPv4 \
-    --sku Basic \
+    --sku Standard \
     --allocation-method Static
 
 
