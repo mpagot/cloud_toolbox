@@ -43,3 +43,4 @@ ssh_vm "sudo zypper lr"
 ssh_vm "sudo zypper --no-gpg-checks ar -f -n TEST_0 ${AZ_NP_REPO} TEST_0"
 ssh_vm "sudo zypper ref" || test_die "rc:$? with zypper ref"
 ssh_vm "sudo zypper lr"
+

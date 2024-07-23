@@ -30,7 +30,7 @@ the deployment in azure is `azure_one_vm_deploy.sh`.
 
 It is mostly implemented as a list of call to various `az` commands.
 
-This script support an optional environment variable `AZ_V1_BOOTLOG`
+This script support an optional environment variable `AZ_BOOTLOG`
 that allow to enable some diagnostic features.
 
 There's a verification script `azure_one_vm_deploy_sanity.sh`;

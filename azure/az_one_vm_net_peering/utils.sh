@@ -22,15 +22,15 @@ MY_PUBIP="${MYNAME}_pubip"
 MY_VM="${MYNAME}-vm"
 # Storage account name must be between 3 and 24 characters in length
 # and use numbers and lower-case letters only.
-AZ_1V_BOOTLOG="${AZ_1V_BOOTLOG:-"0"}"
-if [[ -v AZ_1V_BOOTLOG ]]; then
-  [[ -n "${AZ_1V_BOOTLOG}" ]] && MY_STORAGE_ACCOUNT="${MYNAME//_/}storageaccount"
+AZ_BOOTLOG="${AZ_BOOTLOG:-"0"}"
+if [[ -v AZ_BOOTLOG ]]; then
+  [[ -n "${AZ_BOOTLOG}" ]] && MY_STORAGE_ACCOUNT="${MYNAME//_/}storageaccount"
 fi
 
 print_howto () {
   MY_PUBIP_ADDR="$(get_pub_ip)"
   echo "------------------------------------------------------"
-  echo "|   VM 'ssh -i ${MYSSHKEY} ${MY_USERNAME}@${MY_PUBIP_ADDR}"''
+  echo "|   VM 'ssh -i ${MYSSHKEY} ${MY_USERNAME}@${MY_PUBIP_ADDR}'"
   echo "|"
   echo "|   Destroy all with 'az group delete --name $MY_GROUP -y'"
   echo "------------------------------------------------------"
