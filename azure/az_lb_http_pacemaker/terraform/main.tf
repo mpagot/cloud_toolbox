@@ -80,14 +80,19 @@ resource "azurerm_network_security_group" "mysecgroup" {
   }
 
   security_rule {
-    name                       = "SSH"
-    priority                   = 1001
-    direction                  = "Inbound"
-    access                     = "Allow"
-    protocol                   = "Tcp"
-    source_port_range          = "*"
-    destination_port_range     = "22"
-    source_address_prefix      = local.address_space
+    name                   = "SSH"
+    priority               = 1001
+    direction              = "Inbound"
+    access                 = "Allow"
+    protocol               = "Tcp"
+    source_port_range      = "*"
+    destination_port_range = "22"
+    # source has to be "*" and not local.address_space
+    # as this rules are applied at subnet level
+    # As the bastion use the same subnet
+    # the bastion has to be reachable with ssh
+    # from the external
+    source_address_prefix      = "*"
     destination_address_prefix = "*"
   }
 
@@ -323,7 +328,4 @@ resource "azurerm_linux_virtual_machine" "myinternalvm" {
       storage_account_uri = azurerm_storage_account.mystorageacc[0].primary_blob_endpoint
     }
   }
-
-  # TODO
-  # --nsg $MY_NSG
 }
