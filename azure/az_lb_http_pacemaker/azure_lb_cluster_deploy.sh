@@ -37,9 +37,8 @@ $AZ network nsg create \
     --name $MY_NSG
 
 
-# Create the only one public IP in this deployment,
-# it will be assigned to the 3rd VM (bastion role)
-echo "--> az network public-ip create"
+# Create the public IP for the bastion VM
+echo "[BASTION]--> az network public-ip create"
 $AZ network public-ip create \
     --resource-group $MY_GROUP \
     --name $MY_PUBIP \
@@ -47,6 +46,27 @@ $AZ network public-ip create \
     --sku Standard \
     --allocation-method Static
 
+# Create the public IP for the NAT gateway
+echo "[NAT GATEWAY]--> az network public-ip create"
+$AZ network public-ip create \
+    --resource-group $MY_GROUP \
+    --name $MY_NAT_PUBIP \
+    --sku Standard \
+    --location $MY_REGION \
+    --zone 1
+
+az network nat gateway create \
+    --resource-group $MY_GROUP \
+    --name $MY_NAT \
+    --public-ip-addresses $MY_NAT_PUBIP \
+    --idle-timeout 10 \
+    --location $MY_REGION
+
+az network vnet subnet update \
+    --resource-group $MY_GROUP \
+    --vnet-name $MY_VNET \
+    --name $MY_SUBNET \
+    --nat-gateway $MY_NAT
 
 # Create the load balancer entity.
 # Mostly this one is just a "group" definition

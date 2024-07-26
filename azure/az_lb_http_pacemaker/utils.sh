@@ -23,6 +23,8 @@ fi
 
 MY_USERNAME=cloudadmin
 AZ="${AZ:-"az"}"
+MY_TMP="${MY_TMP:-"/tmp"}"
+MY_REMOTE_TMP="${MY_REMOTE_TMP:-"/tmp"}"
 MY_NUM="${MY_NUM:-"2"}"
 MY_REGION="${MY_REGION:-"northeurope"}"
 MY_OS="${MY_OS:-"SUSE:sles-sap-15-sp5:gen2:latest"}"
@@ -30,11 +32,13 @@ MY_PRIV_IP_RANGE="${MY_PRIV_IP_RANGE:-"192.168.1"}"
 
 # set of names reused more than one time
 MY_GROUP="${MYNAME}_lb_rg"
+MY_VNET="${MYNAME}_vnet"
 MY_SUBNET="${MYNAME}_sn"
 MY_NSG="${MYNAME}_nsg"
 MY_AS="${MYNAME}_as"
-MY_VNET="${MYNAME}_vnet"
 MY_PUBIP="${MYNAME}_pubip"
+MY_NAT_PUBIP="${MYNAME}_nat_pubip"
+MY_NAT="${MYNAME}_nat"
 MY_LB="${MYNAME}_loadbalancer"
 MY_BE_POOL="${MYNAME}_backend_pool"
 MY_HPROBE="${MYNAME}_health"
@@ -49,7 +53,8 @@ MY_MOVE_RES="rsc_web_00"
 # and use numbers and lower-case letters only.
 AZ_BOOTLOG="${AZ_BOOTLOG:-"0"}"
 if [[ -v AZ_BOOTLOG ]]; then
-  [[ -n "${AZ_BOOTLOG}" ]] && MY_STORAGE_ACCOUNT="${MYNAME//_/}storageaccount"
+  [[ -n "${AZ_BOOTLOG}" ]] && MY_STORAGE_ACCOUNT=$(echo "${MYNAME//_/}storageaccount" | tr '[:upper:]' '[:lower:]')
+  [[ "${#MY_STORAGE_ACCOUNT}" -gt 24 ]] && test_die "Too long storageaccount name ${MY_STORAGE_ACCOUNT}"
 fi
 AZ_CLOUTINIT_TIMEOUT="${AZ_CLOUTINIT_TIMEOUT:-600}"
 
@@ -127,6 +132,28 @@ scp_proxy () {
   scp -oProxyCommand="ssh ${MY_USERNAME}@${MY_PUBIP_ADDR} -i ${MYSSHKEY} -W %h:%p" -i "${MYSSHKEY}" $*
 }
 
+ssh_proxy_check_package () {
+  vm_name=$1
+  package_name=$2
+
+  set +e
+  ssh_proxy $this_vm zypper se -i -s $package_name
+  rc_zypper=${PIPESTATUS[0]};
+  set -e
+  if [ $rc_zypper -eq 106 ]; then
+    ssh_proxy $this_vm zypper lr || test_die "Failure at listing repos"
+    ssh_proxy $this_vm sudo zypper ref -f || test_die "Failure at refreshing repos"
+    ssh_proxy $this_vm sudo zypper clean --all || test_die "Failure at clean all"
+    set +e
+    ssh_proxy $this_vm zypper se -i -s package_name
+    echo "RC:$?"
+    set -e
+    # Disable it for error 106
+    #test_die "Failure zypper rc:$rc_zypper"
+  elif [ $rc_zypper -ne 0 ]; then
+    test_die "Failure zypper rc:$rc_zypper"
+  fi
+}
 
 test_connectivity () {
   for NUM in $(seq $MY_NUM); do

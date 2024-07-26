@@ -5,6 +5,8 @@ locals {
   asg                 = format("%s_asg", local.resource_group_name)
   nsg                 = format("%s_nsg", local.resource_group_name)
   pubip               = format("%s_pubip", var.prefix)
+  natpubip            = format("%s_nat_pubip", var.prefix)
+  nat                 = format("%s_nat_gateway", var.prefix)
   lb                  = format("%s_lb", local.resource_group_name)
   lbprobe             = format("%s_health", local.resource_group_name)
   lbrule              = format("%s_lbrule_tcp80", local.resource_group_name)
@@ -126,15 +128,55 @@ resource "azurerm_subnet_network_security_group_association" "mysubnetsecas" {
   network_security_group_id = azurerm_network_security_group.mysecgroup.id
 }
 
+# Create a Public IP for the bastion VM
 resource "azurerm_public_ip" "mypubip" {
   name                = local.pubip
   resource_group_name = azurerm_resource_group.myrg.name
   location            = azurerm_resource_group.myrg.location
-  allocation_method   = "Static"
-  sku                 = "Standard"
-  ip_version          = "IPv4"
+  # static IP allocation must be used
+  # when creating Standard SKU public IP addresses
+  # Dynamic leads to a deployment error
+  allocation_method = "Static"
+  sku               = "Standard"
+  ip_version        = "IPv4"
 }
 
+# Create a Public IP dedicated to the NAT gateway
+resource "azurerm_public_ip" "mynatpubip" {
+  name                = local.natpubip
+  resource_group_name = azurerm_resource_group.myrg.name
+  location            = azurerm_resource_group.myrg.location
+  # static IP allocation must be used
+  # when creating Standard SKU public IP addresses
+  # Dynamic leads to a deployment error
+  allocation_method = "Static"
+  sku               = "Standard"
+  ip_version        = "IPv4"
+  zones             = ["1"]
+}
+
+resource "azurerm_nat_gateway" "mynatgateway" {
+  name                    = local.nat
+  resource_group_name     = azurerm_resource_group.myrg.name
+  location                = azurerm_resource_group.myrg.location
+  sku_name                = "Standard"
+  idle_timeout_in_minutes = 10
+  zones                   = ["1"]
+}
+
+# Associate NAT Gateway with Public IP
+resource "azurerm_nat_gateway_public_ip_association" "mynattoip" {
+  nat_gateway_id       = azurerm_nat_gateway.mynatgateway.id
+  public_ip_address_id = azurerm_public_ip.mynatpubip.id
+}
+
+# Associate NAT Gateway with Subnet
+resource "azurerm_subnet_nat_gateway_association" "mynattosubnet" {
+  nat_gateway_id = azurerm_nat_gateway.mynatgateway.id
+  subnet_id      = azurerm_virtual_network.mynet.subnet.*.id[0]
+}
+
+# Create the Load Balancer
 resource "azurerm_lb" "mylb" {
   name                = local.lb
   location            = azurerm_resource_group.myrg.location
