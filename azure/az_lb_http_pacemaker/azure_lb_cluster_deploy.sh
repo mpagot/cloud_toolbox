@@ -55,6 +55,7 @@ $AZ network public-ip create \
     --location $MY_REGION \
     --zone 1
 
+echo "--> az network nat gateway create"
 az network nat gateway create \
     --resource-group $MY_GROUP \
     --name $MY_NAT \
@@ -62,6 +63,7 @@ az network nat gateway create \
     --idle-timeout 10 \
     --location $MY_REGION
 
+echo "--> az network vnet subnet update for nat-gateway"
 az network vnet subnet update \
     --resource-group $MY_GROUP \
     --vnet-name $MY_VNET \

@@ -319,15 +319,20 @@ resource "azurerm_linux_virtual_machine" "mybastionvm" {
 }
 
 locals {
-  cloud_init_script = yamlencode(
-    {
-      "package_upgrade" : var.enable_package_upgrade,
-      "packages" : ["nginx"],
-      "runcmd" : [
-        "echo \"I am $(hostname)\" > /srv/www/htdocs/index.html",
-        "sudo systemctl enable nginx.service",
-        "sudo systemctl start nginx.service"
-  ] })
+  cloud_init_script = <<-EOT
+    #cloud-config
+    ${yamlencode(
+  {
+    "package_upgrade" : var.enable_package_upgrade,
+    "packages" : ["nginx"],
+    "runcmd" : [
+      "echo \"I am $(hostname)\" > /srv/www/htdocs/index.html",
+      "sudo systemctl enable nginx.service",
+      "sudo systemctl start nginx.service"
+    ]
+  }
+)}
+EOT
 }
 
 resource "azurerm_linux_virtual_machine" "myinternalvm" {
