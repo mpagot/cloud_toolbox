@@ -5,11 +5,13 @@
 
 MY_PUBIP_ADDR="$(get_pub_ip)"
 MY_INTERNAL_KEY="id_rsa" # no other names works, this is the only key filename added by default
+HOSTKEYCHECK="accept-new"
+[[ $MY_OS =~ "12-sp5" ]] && HOSTKEYCHECK=no
 
 test_step "Clean up known_hosts on the machine running the test script"
 ssh-keygen -R $MY_PUBIP_ADDR
 test_step "Accept bastion host key"
-ssh -i $MYSSHKEY -o StrictHostKeyChecking=accept-new $MY_USERNAME@$MY_PUBIP_ADDR whoami
+ssh -i $MYSSHKEY -o StrictHostKeyChecking=$HOSTKEYCHECK $MY_USERNAME@$MY_PUBIP_ADDR whoami
 
 for NUM in $(seq $MY_NUM); do
   this_vm="${MYNAME}-vm-0${NUM}"
@@ -17,12 +19,12 @@ for NUM in $(seq $MY_NUM); do
   echo "-------> this_vm:${this_vm}"
   ssh-keygen -R $this_vm
   #test_step "[${this_vm}] accept the bastion key"
-  #ssh_bastion 'ssh -o StrictHostKeyChecking=accept-new '"${MY_USERNAME}@${this_vm}"' whoami'
+  #ssh_bastion 'ssh -o StrictHostKeyChecking='"${HOSTKEYCHECK}"' '"${MY_USERNAME}@${this_vm}"' whoami'
 
   test_step "[${this_vm}] accept the host key for the internal VM on the machine running the test script"
   ssh "${MY_USERNAME}@${this_vm}" \
       -oProxyCommand="ssh ${MY_USERNAME}@${MY_PUBIP_ADDR} -i $MYSSHKEY -W %h:%p" \
-      -oStrictHostKeyChecking=accept-new \
+      -oStrictHostKeyChecking=$HOSTKEYCHECK \
       -i $MYSSHKEY \
       whoami
 
@@ -75,6 +77,6 @@ for NUM in $(seq $MY_NUM); do
         continue
     fi
     other_vm="${MYNAME}-vm-0${OTHER_NUM}"
-    ssh_proxy $this_vm "ssh ${MY_USERNAME}@${other_vm} -oStrictHostKeyChecking=accept-new whoami" || test_die "${this_vm} is not able to ssh ${other_vm}"
+    ssh_proxy $this_vm "ssh ${MY_USERNAME}@${other_vm} -oStrictHostKeyChecking=${HOSTKEYCHECK} whoami" || test_die "${this_vm} is not able to ssh ${other_vm}"
   done
 done

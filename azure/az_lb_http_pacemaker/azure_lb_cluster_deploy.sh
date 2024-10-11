@@ -56,7 +56,7 @@ $AZ network public-ip create \
     --zone 1
 
 echo "--> az network nat gateway create"
-az network nat gateway create \
+$AZ network nat gateway create \
     --resource-group $MY_GROUP \
     --name $MY_NAT \
     --public-ip-addresses $MY_NAT_PUBIP \
@@ -64,7 +64,7 @@ az network nat gateway create \
     --location $MY_REGION
 
 echo "--> az network vnet subnet update for nat-gateway"
-az network vnet subnet update \
+$AZ network vnet subnet update \
     --resource-group $MY_GROUP \
     --vnet-name $MY_VNET \
     --name $MY_SUBNET \
@@ -95,6 +95,8 @@ $AZ vm availability-set create \
   -g $MY_GROUP \
   --platform-fault-domain-count 2
 
+[[ $MY_OS =~ "12-sp5" ]] && VM_TRUSTLAUNCH="--security-type Standard"
+
 # Create Bastion at first so if something goes
 # wrong we have a point to look inside
 echo "--> az vm create -n $MY_BASTION"
@@ -103,7 +105,7 @@ $AZ vm create \
   -g $MY_GROUP \
   -l $MY_REGION \
   --size Standard_B1s \
-  --image $MY_OS \
+  --image $MY_OS $VM_TRUSTLAUNCH \
   --admin-username $MY_USERNAME \
   --vnet-name $MY_VNET \
   --subnet $MY_SUBNET \
@@ -126,7 +128,7 @@ for NUM in $(seq $MY_NUM); do
     -g $MY_GROUP \
     -l $MY_REGION \
     --size Standard_B1s \
-    --image $MY_OS \
+    --image $MY_OS $VM_TRUSTLAUNCH \
     --admin-username $MY_USERNAME \
     --vnet-name $MY_VNET \
     --subnet $MY_SUBNET \
@@ -135,6 +137,7 @@ for NUM in $(seq $MY_NUM); do
     --nsg $MY_NSG \
     --custom-data cloud-init-web.txt \
     --ssh-key-values "${MYSSHKEY}.pub"
+  echo "Exit code for vm create rc:$?"
 
   echo "--> check if run-command works for ${THIS_VM}"
   # Try to execute a very brief command like `exit 0`
@@ -162,7 +165,6 @@ for NUM in $(seq $MY_NUM); do
   --script "sudo cloud-init status --wait"
 
   WAIT_CLOUD_INIT_RC=$?
-
   set -e
   echo "Exit code for cloud-init status rc:$WAIT_CLOUD_INIT_RC"
   [[ $WAIT_CLOUD_INIT_RC -eq 0 ]] || test_die "cloud-init status --wait error"
