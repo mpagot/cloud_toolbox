@@ -52,11 +52,18 @@ MY_MOVE_RES="rsc_web_00"
 # Storage account name must be between 3 and 24 characters in length
 # and use numbers and lower-case letters only.
 AZ_BOOTLOG="${AZ_BOOTLOG:-"0"}"
-if [[ -v AZ_BOOTLOG ]]; then
+if [[ AZ_BOOTLOG -eq 1 ]]; then
+  echo "AZ_BOOTLOG:${AZ_BOOTLOG} enabled."
   [[ -n "${AZ_BOOTLOG}" ]] && MY_STORAGE_ACCOUNT=$(echo "${MYNAME//_/}storageaccount" | tr '[:upper:]' '[:lower:]')
   [[ "${#MY_STORAGE_ACCOUNT}" -gt 24 ]] && test_die "Too long storageaccount name ${MY_STORAGE_ACCOUNT}"
 fi
 AZ_CLOUTINIT_TIMEOUT="${AZ_CLOUTINIT_TIMEOUT:-600}"
+
+# Enable or disable cloud-init. It is enabled by default
+AZ_CLOUDINIT="${AZ_CLOUDINIT:-"1"}"
+if [[ "${AZ_CLOUDINIT}" -eq 1 ]]; then
+  echo "AZ_CLOUDINIT:${AZ_CLOUDINIT} enabled"
+fi
 
 print_howto () {
   MY_PUBIP_ADDR="$(get_pub_ip)"

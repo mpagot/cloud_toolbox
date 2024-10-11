@@ -13,11 +13,9 @@
 
 $AZ --version
 
-
 # Create a resource group to contain all the resources
 echo "--> az group create -g $MY_GROUP -l $MY_REGION"
 $AZ group create -g $MY_GROUP -l $MY_REGION
-
 
 # Create a VNET only needed later when creating the VM
 echo "--> az network vnet create"
@@ -112,6 +110,12 @@ $AZ vm create \
   --public-ip-address $MY_PUBIP \
   --ssh-key-values "${MYSSHKEY}.pub"
 
+if [[ "${AZ_CLOUDINIT}" -eq 1 ]]; then
+  VM_CUSTOMDATA="--custom-data cloud-init-web.txt"
+else
+  VM_CUSTOMDATA=" "
+fi
+
 # Create 2:
 #   - VMs
 #   - for each of them open port 80
@@ -134,46 +138,45 @@ for NUM in $(seq $MY_NUM); do
     --subnet $MY_SUBNET \
     --public-ip-address "" \
     --availability-set $MY_AS \
-    --nsg $MY_NSG \
-    --custom-data cloud-init-web.txt \
+    --nsg $MY_NSG $VM_CUSTOMDATA \
     --ssh-key-values "${MYSSHKEY}.pub"
   echo "Exit code for vm create rc:$?"
 
-  echo "--> check if run-command works for ${THIS_VM}"
-  # Try to execute a very brief command like `exit 0`
-  # This test is here as run-command does not terminate
-  # even with internal `cloud-init status --wait` is over
-  timeout $(( $AZ_CLOUTINIT_TIMEOUT + 30 )) $AZ vm run-command create \
-  --run-command-name "testRuncommand" \
-  -g $MY_GROUP \
-  --vm-name $THIS_VM \
-  --async-execution "false" \
-  --run-as-user $MY_USERNAME \
-  --timeout-in-seconds $AZ_CLOUTINIT_TIMEOUT \
-  --script "exit 0"
-  echo "Exit code for run-command rc:$?"
+  if [[ "${AZ_CLOUDINIT}" -eq 1 ]]; then
+    echo "--> check if run-command works for ${THIS_VM}"
+    # Try to execute a very brief command like `exit 0`
+    # This test is here as run-command does not terminate
+    # even with internal `cloud-init status --wait` is over
+    timeout $(( $AZ_CLOUTINIT_TIMEOUT + 30 )) $AZ vm run-command create \
+      --run-command-name "testRuncommand" \
+      -g $MY_GROUP \
+      --vm-name $THIS_VM \
+      --async-execution "false" \
+      --run-as-user $MY_USERNAME \
+      --timeout-in-seconds $AZ_CLOUTINIT_TIMEOUT \
+      --script "exit 0"
+    echo "Exit code for run-command rc:$?"
 
-  echo "--> wait cloud-init to complete on ${THIS_VM} with timeout ${AZ_CLOUTINIT_TIMEOUT}"
-  set +e
-  timeout $(( $AZ_CLOUTINIT_TIMEOUT + 30 )) $AZ vm run-command create \
-  --run-command-name "awaitCloudInitIsDone" \
-  -g $MY_GROUP \
-  --vm-name $THIS_VM \
-  --async-execution "false" \
-  --run-as-user $MY_USERNAME \
-  --timeout-in-seconds $AZ_CLOUTINIT_TIMEOUT \
-  --script "sudo cloud-init status --wait"
+    echo "--> wait cloud-init to complete on ${THIS_VM} with timeout ${AZ_CLOUTINIT_TIMEOUT}"
+    set +e
+    timeout $(( $AZ_CLOUTINIT_TIMEOUT + 30 )) $AZ vm run-command create \
+      --run-command-name "awaitCloudInitIsDone" \
+      -g $MY_GROUP \
+      --vm-name $THIS_VM \
+      --async-execution "false" \
+      --run-as-user $MY_USERNAME \
+      --timeout-in-seconds $AZ_CLOUTINIT_TIMEOUT \
+      --script "sudo cloud-init status --wait"
 
-  WAIT_CLOUD_INIT_RC=$?
-  set -e
-  echo "Exit code for cloud-init status rc:$WAIT_CLOUD_INIT_RC"
-  [[ $WAIT_CLOUD_INIT_RC -eq 0 ]] || test_die "cloud-init status --wait error"
+    WAIT_CLOUD_INIT_RC=$?
+    set -e
+    echo "Exit code for cloud-init status rc:$WAIT_CLOUD_INIT_RC"
+    [[ $WAIT_CLOUD_INIT_RC -eq 0 ]] || test_die "cloud-init status --wait error"
+  fi
 
   echo "--> az vm open-port -n $MYNAME-vm-0$NUM"
   $AZ vm open-port -g $MY_GROUP --name $THIS_VM --port 80
 done
-
-
 
 # Keep this loop separated from the other to hopefully
 # give cloud-init more time to run
@@ -236,7 +239,7 @@ $AZ network lb rule create \
     --enable-floating-ip 1 \
     --probe-name $MY_HPROBE
 
-if [[ -n "${AZ_BOOTLOG}" ]]; then
+if [[ "${AZ_BOOTLOG}" -eq 1 ]]; then
   echo "--> create all components needed to get boot log"
   $AZ storage account create \
       -g $MY_GROUP \

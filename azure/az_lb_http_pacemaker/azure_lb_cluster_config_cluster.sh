@@ -10,12 +10,42 @@ maintenance () {
     sudo crm configure property maintenance-mode=$1
 }
 
-test_step "Disable the nginx service"
-# Pacemaker will take care of it
+if [[ "${AZ_CLOUDINIT}" -eq 0 ]]; then
+  for NUM in $(seq $MY_NUM); do
+    this_vm="${MYNAME}-vm-0${NUM}"
+
+    test_step "[${this_vm}] install nginx"
+    ssh_proxy $this_vm sudo zypper in -y nginx || test_die "Error installing nginx on ${this_vm}"
+
+    test_step "[${this_vm}] configure the page"
+    this_tmp="/tmp/${this_vm}"
+    rm -rf "${this_tmp}"
+    mkdir -p "${this_tmp}"
+    echo "I am ${this_vm}" > "${this_tmp}"/index.html
+
+    scp_proxy "${this_tmp}/index.html ${MY_USERNAME}@${this_vm}:/tmp/index.html"
+    ssh_proxy $this_vm "sudo mv /tmp/index.html /srv/www/htdocs/index.html"
+    #ssh_proxy $this_vm "sudo chown ${MY_USERNAME}:users ????/index.html"
+  done
+
+  test_step "Disable the nginx service"
+  # Pacemaker will take care of it
+  ssh_proxy $this_vm \
+      sudo systemctl status nginx.service || echo "TODO: handle the result properly"
+#ssh_proxy "${MYNAME}-vm-02" \
+#    sudo systemctl stop nginx.service || test_die "rc:$? Not able to stop nginx on ${MYNAME}-vm-02"
+fi
+
+
+test_step "[${MYNAME}-vm-01] crm version"
 ssh_proxy "${MYNAME}-vm-01" \
-    sudo systemctl stop nginx.service || test_die "rc:$? Not able to stop nginx on ${MYNAME}-vm-01"
-ssh_proxy "${MYNAME}-vm-02" \
-    sudo systemctl stop nginx.service || test_die "rc:$? Not able to stop nginx on ${MYNAME}-vm-02"
+    'sudo crm --version' || test_die "Fails in crm version"
+
+ssh_proxy "${MYNAME}-vm-01" \
+    'rpm -qf $(sudo which crm)' || test_die "Fails in crm cluster init"
+
+ssh_proxy "${MYNAME}-vm-01" \
+    'zypper se -s -i crmsh' || test_die "Fails in crm cluster init"
 
 
 test_step "[${MYNAME}-vm-01] crm init"

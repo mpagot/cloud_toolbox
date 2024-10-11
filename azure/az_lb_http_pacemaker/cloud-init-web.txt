@@ -4,5 +4,3 @@ packages:
   - nginx
 runcmd:
   - 'echo "I am $(hostname)" > /srv/www/htdocs/index.html'
-  - systemctl enable nginx.service
-  - systemctl start nginx.service
