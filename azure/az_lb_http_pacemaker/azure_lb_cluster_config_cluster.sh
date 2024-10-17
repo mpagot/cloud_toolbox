@@ -17,13 +17,13 @@ if [[ "${AZ_CLOUDINIT}" -eq 0 ]]; then
     test_step "[${this_vm}] install nginx"
     if [[ $MY_OS =~ "12-sp5" ]]; then
       # nginx not available in 12sp5 repos
-      ssh_proxy $this_vm sudo zypper addrepo -G -t yum -c 'http://nginx.org/packages/sles/12' nginx
-      ssh_proxy $this_vm wget http://nginx.org/keys/nginx_signing.key
-      ssh_proxy $this_vm sudo rpm --import nginx_signing.key
-      ssh_proxy $this_vm sudo zypper ref
-      ssh_proxy $this_vm sudo zypper install nginx
+      ssh_proxy $this_vm sudo zypper addrepo -G -t yum -c 'http://nginx.org/packages/sles/12' nginx && \
+      ssh_proxy $this_vm wget http://nginx.org/keys/nginx_signing.key && \
+      ssh_proxy $this_vm sudo rpm --import nginx_signing.key && \
+      ssh_proxy $this_vm sudo zypper ref && \
+      ssh_proxy $this_vm sudo zypper install -y nginx socat || test_die "Error installing nginx on ${this_vm}"
     else
-      ssh_proxy $this_vm sudo zypper in -y nginx || test_die "Error installing nginx on ${this_vm}"
+      ssh_proxy $this_vm sudo zypper install -y nginx || test_die "Error installing nginx on ${this_vm}"
     fi
 
     test_step "[${this_vm}] configure the page"
@@ -54,7 +54,6 @@ ssh_proxy "${MYNAME}-vm-01" \
 
 ssh_proxy "${MYNAME}-vm-01" \
     'zypper se -s -i crmsh' || test_die "Fails in crm cluster init"
-
 
 test_step "[${MYNAME}-vm-01] crm init"
 ssh_proxy "${MYNAME}-vm-01" \
