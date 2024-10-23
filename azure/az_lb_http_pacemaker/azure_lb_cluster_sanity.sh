@@ -218,6 +218,12 @@ for NUM in $(seq $MY_NUM); do
 
   test_step "[${this_vm}] webserver"
   ssh_proxy_check_package $this_vm nginx
+  # show version
+  ssh_proxy $this_vm nginx -V
+  # show configuration
+  ssh_proxy $this_vm nginx -T
+  # show default static page location
+  ssh_proxy $this_vm nginx -T |& grep root | grep -vE "^\s+#.*"
 
   set +e
   ssh_proxy $this_vm sudo systemctl status nginx.service

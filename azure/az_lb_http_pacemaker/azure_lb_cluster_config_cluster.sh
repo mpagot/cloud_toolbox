@@ -35,7 +35,11 @@ if [[ "${AZ_CLOUDINIT}" -eq 0 ]]; then
     echo "I am ${this_vm}" > "${this_tmp}"/index.html
 
     scp_proxy "${this_tmp}/index.html ${MY_USERNAME}@${this_vm}:/tmp/index.html"
-    ssh_proxy $this_vm "sudo mv /tmp/index.html /srv/www/htdocs/index.html"
+    if [[ $MY_OS =~ "12-sp5" ]]; then
+      ssh_proxy $this_vm "sudo mv /tmp/index.html /usr/share/nginx/html/index.html"
+    else
+      ssh_proxy $this_vm "sudo mv /tmp/index.html /srv/www/htdocs/index.html"
+    fi
     #ssh_proxy $this_vm "sudo chown ${MY_USERNAME}:users ????/index.html"
   done
 
