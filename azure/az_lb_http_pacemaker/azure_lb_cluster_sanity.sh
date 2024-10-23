@@ -56,6 +56,19 @@ for NUM in $(seq $MY_NUM); do
   ssh_proxy $this_vm uname -a
   ssh_proxy $this_vm zypper --version
 
+  test_step "[${this_vm}] check installed packages: crm"
+  ssh_proxy "${this_vm}" \
+    'sudo crm --version' || test_die "Fails in crm version"
+
+  ssh_proxy "${this_vm}" \
+    'rpm -qf $(sudo which crm)' || test_die "Fails in crm binary and package"
+
+  ssh_proxy "${this_vm}" \
+    'zypper se -s -i crmsh' || test_die "Fails in crmsh package"
+
+  ssh_proxy "${this_vm}" \
+    'zypper se -s -i socat' || test_die "Fails in socat package"
+
   test_step "[${this_vm}] dmidecode"
   DMILOG="${MY_TMP}/dmidecode.${this_vm}.log"
   set +e
@@ -211,6 +224,9 @@ for NUM in $(seq $MY_NUM); do
   rc=$?; [[ $rc -ne 0 ]] || test_die "rc:$? ${this_vm} has nginx server running and should not"
   set -e
   ssh_bastion "curl -s http://${MY_FIP}" || test_die "${this_vm} does not have http web page reachable at http://${MY_FIP}"
+  ssh_proxy $this_vm ps -xa
+  ssh_proxy $this_vm ps -xa | grep nginx
+  ssh_proxy $this_vm ps -xa | grep socat
 
   test_step "[${this_vm}] diagnostic logs"
   ssh_proxy $this_vm 'sudo ls -lai /var/log/'

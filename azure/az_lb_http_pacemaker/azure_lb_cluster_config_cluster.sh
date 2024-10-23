@@ -20,12 +20,14 @@ if [[ "${AZ_CLOUDINIT}" -eq 0 ]]; then
       ssh_proxy $this_vm sudo zypper addrepo -G -t yum -c 'http://nginx.org/packages/sles/12' nginx && \
       ssh_proxy $this_vm wget http://nginx.org/keys/nginx_signing.key && \
       ssh_proxy $this_vm sudo rpm --import nginx_signing.key && \
-      ssh_proxy $this_vm sudo zypper ref && \
-      ssh_proxy $this_vm sudo zypper install -y nginx socat || test_die "Error installing nginx on ${this_vm}"
-    else
-      ssh_proxy $this_vm sudo zypper install -y nginx || test_die "Error installing nginx on ${this_vm}"
+      ssh_proxy $this_vm sudo zypper ref || test_die "Error configuring nginx external repo on ${this_vm}"
     fi
-
+    ssh_proxy $this_vm sudo zypper install -y nginx || test_die "Error installing nginx on ${this_vm}"
+    if [[ $MY_OS =~ "12-sp5" ]]; then
+      # Needed by the health check of the Azure LB but
+      # not installed by default in this OS version
+      ssh_proxy $this_vm sudo zypper install -y socat || test_die "Error installing socat on ${this_vm}"
+    fi
     test_step "[${this_vm}] configure the page"
     this_tmp="/tmp/${this_vm}"
     rm -rf "${this_tmp}"
@@ -44,16 +46,6 @@ if [[ "${AZ_CLOUDINIT}" -eq 0 ]]; then
 #ssh_proxy "${MYNAME}-vm-02" \
 #    sudo systemctl stop nginx.service || test_die "rc:$? Not able to stop nginx on ${MYNAME}-vm-02"
 fi
-
-test_step "[${MYNAME}-vm-01] crm version"
-ssh_proxy "${MYNAME}-vm-01" \
-    'sudo crm --version' || test_die "Fails in crm version"
-
-ssh_proxy "${MYNAME}-vm-01" \
-    'rpm -qf $(sudo which crm)' || test_die "Fails in crm cluster init"
-
-ssh_proxy "${MYNAME}-vm-01" \
-    'zypper se -s -i crmsh' || test_die "Fails in crm cluster init"
 
 test_step "[${MYNAME}-vm-01] crm init"
 ssh_proxy "${MYNAME}-vm-01" \
